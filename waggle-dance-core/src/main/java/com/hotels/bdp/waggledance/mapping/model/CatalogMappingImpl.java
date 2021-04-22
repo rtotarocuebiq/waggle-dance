@@ -24,6 +24,7 @@ import org.apache.hadoop.hive.metastore.api.AddPartitionsRequest;
 import org.apache.hadoop.hive.metastore.api.AddPartitionsResult;
 import org.apache.hadoop.hive.metastore.api.AlreadyExistsException;
 import org.apache.hadoop.hive.metastore.api.CacheFileMetadataRequest;
+import org.apache.hadoop.hive.metastore.api.Catalog;
 import org.apache.hadoop.hive.metastore.api.ColumnStatistics;
 import org.apache.hadoop.hive.metastore.api.CompactionRequest;
 import org.apache.hadoop.hive.metastore.api.Database;
@@ -68,7 +69,8 @@ import org.slf4j.LoggerFactory;
 
 import com.hotels.bdp.waggledance.api.WaggleDanceException;
 
-public class DatabaseMappingImpl implements DatabaseMapping {
+public class DatabaseMappingImpl implements CatalogMapping
+{
 
   private final static Logger log = LoggerFactory.getLogger(DatabaseMappingImpl.class);
 
@@ -88,7 +90,7 @@ public class DatabaseMappingImpl implements DatabaseMapping {
   @Override
   public Table transformOutboundTable(Table table) {
     String originalDatabaseName = table.getDbName();
-    String databaseName = metaStoreMapping.transformOutboundDatabaseName(originalDatabaseName);
+    String databaseName = metaStoreMapping.transformOutboundCatalogName(originalDatabaseName);
     table.setDbName(databaseName);
     if (databaseName.equalsIgnoreCase(originalDatabaseName)) {
       // Skip all the view parsing if nothing is going to change, the parsing is not without problems and we can't catch
@@ -101,7 +103,7 @@ public class DatabaseMappingImpl implements DatabaseMapping {
         log.debug("Transforming ViewExpandedText: {}", table.getViewExpandedText());
         table
             .setViewExpandedText(
-                queryMapping.transformOutboundDatabaseName(metaStoreMapping, table.getViewExpandedText()));
+                queryMapping.transformOutboundCatalogName(metaStoreMapping, table.getViewExpandedText()));
       } catch (WaggleDanceException e) {
         log.debug("Error while transforming databaseName in ViewExpandedText, keeping original", e);
       }
@@ -111,7 +113,7 @@ public class DatabaseMappingImpl implements DatabaseMapping {
         log.debug("Transforming ViewOriginalText: {}", table.getViewOriginalText());
         table
             .setViewOriginalText(
-                queryMapping.transformOutboundDatabaseName(metaStoreMapping, table.getViewOriginalText()));
+                queryMapping.transformOutboundCatalogName(metaStoreMapping, table.getViewOriginalText()));
       } catch (WaggleDanceException e) {
         // We are hitting a bug in hive (https://issues.apache.org/jira/browse/HIVE-19896) that prevents the
         // ViewOriginalText to be parsed, if we leave the ViewOriginalText we'll have the wrong database names in it so
@@ -128,68 +130,68 @@ public class DatabaseMappingImpl implements DatabaseMapping {
 
   @Override
   public Partition transformOutboundPartition(Partition partition) {
-    partition.setDbName(metaStoreMapping.transformOutboundDatabaseName(partition.getDbName()));
+    partition.setDbName(metaStoreMapping.transformOutboundCatalogName(partition.getDbName()));
     return partition;
   }
 
   @Override
   public Table transformInboundTable(Table table) {
-    table.setDbName(metaStoreMapping.transformInboundDatabaseName(table.getDbName()));
+    table.setDbName(metaStoreMapping.transformInboundCatalogName(table.getDbName()));
     return table;
   }
 
   @Override
   public Partition transformInboundPartition(Partition partition) {
-    partition.setDbName(metaStoreMapping.transformInboundDatabaseName(partition.getDbName()));
+    partition.setDbName(metaStoreMapping.transformInboundCatalogName(partition.getDbName()));
     return partition;
   }
 
 
   @Override
   public Function transformOutboundFunction(Function function) {
-    function.setDbName(metaStoreMapping.transformOutboundDatabaseName(function.getDbName()));
+    function.setDbName(metaStoreMapping.transformOutboundCatalogName(function.getDbName()));
     return function;
   }
 
   @Override
   public HiveObjectRef transformInboundHiveObjectRef(HiveObjectRef obj) {
-    obj.setDbName(metaStoreMapping.transformInboundDatabaseName(obj.getDbName()));
+    obj.setDbName(metaStoreMapping.transformInboundCatalogName(obj.getDbName()));
     if (obj.getObjectType() == HiveObjectType.DATABASE) {
-      obj.setObjectName(metaStoreMapping.transformInboundDatabaseName(obj.getObjectName()));
+      obj.setObjectName(metaStoreMapping.transformInboundCatalogName(obj.getObjectName()));
     }
     return obj;
   }
 
   @Override
   public HiveObjectRef transformOutboundHiveObjectRef(HiveObjectRef obj) {
-    obj.setDbName(metaStoreMapping.transformOutboundDatabaseName(obj.getDbName()));
+    obj.setDbName(metaStoreMapping.transformOutboundCatalogName(obj.getDbName()));
     if (obj.getObjectType() == HiveObjectType.DATABASE) {
-      obj.setObjectName(metaStoreMapping.transformOutboundDatabaseName(obj.getObjectName()));
+      obj.setObjectName(metaStoreMapping.transformOutboundCatalogName(obj.getObjectName()));
     }
     return obj;
   }
 
   @Override
   public PartitionSpec transformOutboundPartitionSpec(PartitionSpec partitionSpec) {
-    partitionSpec.setDbName(metaStoreMapping.transformOutboundDatabaseName(partitionSpec.getDbName()));
+    partitionSpec.setDbName(metaStoreMapping.transformOutboundCatalogName(partitionSpec.getDbName()));
     return partitionSpec;
   }
 
   @Override
   public PartitionsStatsRequest transformInboundPartitionsStatsRequest(PartitionsStatsRequest request) {
-    request.setDbName(metaStoreMapping.transformInboundDatabaseName(request.getDbName()));
+    request.setDbName(metaStoreMapping.transformInboundCatalogName(request.getDbName()));
     return request;
   }
 
   @Override
   public TableStatsRequest transformInboundTableStatsRequest(TableStatsRequest request) {
-    request.setDbName(metaStoreMapping.transformInboundDatabaseName(request.getDbName()));
+    request.setDbName(metaStoreMapping.transformInboundCatalogName(request.getDbName()));
     return request;
   }
 
   @Override
   public PartitionsByExprRequest transformInboundPartitionsByExprRequest(PartitionsByExprRequest req) {
-    req.setDbName(metaStoreMapping.transformInboundDatabaseName(req.getDbName()));
+    req.setDbName(metaStoreMapping.transformInboundCatalogName(req.getDbName()));
     return req;
   }
 
@@ -205,28 +207,28 @@ public class DatabaseMappingImpl implements DatabaseMapping {
   }
 
   @Override
-  public String transformOutboundDatabaseName(String databaseName) {
-    return metaStoreMapping.transformOutboundDatabaseName(databaseName);
+  public String transformOutboundCatalogName(String databaseName) {
+    return metaStoreMapping.transformOutboundCatalogName(databaseName);
   }
 
   @Override
-  public List<String> transformOutboundDatabaseNameMultiple(String databaseName) {
-    return metaStoreMapping.transformOutboundDatabaseNameMultiple(databaseName);
+  public List<String> transformOutboundCatalogNameMultiple(String databaseName) {
+    return metaStoreMapping.transformOutboundCatalogNameMultiple(databaseName);
   }
 
   @Override
-  public Database transformOutboundDatabase(Database database) {
-    return metaStoreMapping.transformOutboundDatabase(database);
+  public Catalog transformOutboundCatalog(Catalog catalog) {
+    return metaStoreMapping.transformOutboundCatalog(catalog);
   }
 
   @Override
-  public String transformInboundDatabaseName(String databaseName) {
-    return metaStoreMapping.transformInboundDatabaseName(databaseName);
+  public String transformInboundCatalogName(String databaseName) {
+    return metaStoreMapping.transformInboundCatalogName(databaseName);
   }
 
   @Override
-  public String getDatabasePrefix() {
-    return metaStoreMapping.getDatabasePrefix();
+  public String getCatalogPrefix() {
+    return metaStoreMapping.getCatalogPrefix();
   }
 
   @Override
@@ -236,22 +238,22 @@ public class DatabaseMappingImpl implements DatabaseMapping {
 
   @Override
   public CacheFileMetadataRequest transformInboundCacheFileMetadataRequest(CacheFileMetadataRequest req) {
-    req.setDbName(metaStoreMapping.transformInboundDatabaseName(req.getDbName()));
+    req.setDbName(metaStoreMapping.transformInboundCatalogName(req.getDbName()));
     return req;
   }
 
   @Override
   public FireEventRequest transformInboundFireEventRequest(FireEventRequest rqst) {
-    rqst.setDbName(metaStoreMapping.transformInboundDatabaseName(rqst.getDbName()));
+    rqst.setDbName(metaStoreMapping.transformInboundCatalogName(rqst.getDbName()));
     return rqst;
   }
 
   @Override
   public ForeignKeysRequest transformInboundForeignKeysRequest(ForeignKeysRequest request) {
     String parentDbName = request.getParent_db_name() == null ? null
-        : metaStoreMapping.transformInboundDatabaseName(request.getParent_db_name());
+        : metaStoreMapping.transformInboundCatalogName(request.getParent_db_name());
     String foreignDbName = request.getForeign_db_name() == null ? null
-        : metaStoreMapping.transformInboundDatabaseName(request.getForeign_db_name());
+        : metaStoreMapping.transformInboundCatalogName(request.getForeign_db_name());
 
     request.setParent_db_name(parentDbName);
     request.setForeign_db_name(foreignDbName);
@@ -261,35 +263,35 @@ public class DatabaseMappingImpl implements DatabaseMapping {
   @Override
   public ForeignKeysResponse transformOutboundForeignKeysResponse(ForeignKeysResponse response) {
     for (SQLForeignKey key : response.getForeignKeys()) {
-      key.setPktable_db(metaStoreMapping.transformOutboundDatabaseName(key.getPktable_db()));
-      key.setFktable_db(metaStoreMapping.transformOutboundDatabaseName(key.getFktable_db()));
+      key.setPktable_db(metaStoreMapping.transformOutboundCatalogName(key.getPktable_db()));
+      key.setFktable_db(metaStoreMapping.transformOutboundCatalogName(key.getFktable_db()));
     }
     return response;
   }
 
   @Override
   public PrimaryKeysRequest transformInboundPrimaryKeysRequest(PrimaryKeysRequest request) {
-    request.setDb_name(metaStoreMapping.transformInboundDatabaseName(request.getDb_name()));
+    request.setDb_name(metaStoreMapping.transformInboundCatalogName(request.getDb_name()));
     return request;
   }
 
   @Override
   public PrimaryKeysResponse transformOutboundPrimaryKeysResponse(PrimaryKeysResponse response) {
     for (SQLPrimaryKey key : response.getPrimaryKeys()) {
-      key.setTable_db(metaStoreMapping.transformOutboundDatabaseName(key.getTable_db()));
+      key.setTable_db(metaStoreMapping.transformOutboundCatalogName(key.getTable_db()));
     }
     return response;
   }
 
   @Override
   public TableMeta transformOutboundTableMeta(TableMeta tableMeta) {
-    tableMeta.setDbName(metaStoreMapping.transformOutboundDatabaseName(tableMeta.getDbName()));
+    tableMeta.setDbName(metaStoreMapping.transformOutboundCatalogName(tableMeta.getDbName()));
     return tableMeta;
   }
 
   @Override
   public AddDynamicPartitions transformInboundAddDynamicPartitions(AddDynamicPartitions request) {
-    request.setDbname(metaStoreMapping.transformInboundDatabaseName(request.getDbname()));
+    request.setDbname(metaStoreMapping.transformInboundCatalogName(request.getDbname()));
     return request;
   }
 
@@ -304,19 +306,19 @@ public class DatabaseMappingImpl implements DatabaseMapping {
   }
 
   @Override
-  public MetaStoreMapping checkWritePermissions(String databaseName) throws IllegalArgumentException {
-    return metaStoreMapping.checkWritePermissions(transformInboundDatabaseName(databaseName));
+  public MetaStoreMapping checkWritePermissions(String catalogName,String databaseName) throws IllegalArgumentException {
+    return metaStoreMapping.checkWritePermissions(transformInboundCatalogName(catalogName),databaseName);
   }
 
   @Override
   public DropConstraintRequest transformInboundDropConstraintRequest(DropConstraintRequest request) {
-    request.setDbname(metaStoreMapping.transformInboundDatabaseName(request.getDbname()));
+    request.setDbname(metaStoreMapping.transformInboundCatalogName(request.getDbname()));
     return request;
   }
 
   @Override
   public AddPartitionsRequest transformInboundAddPartitionsRequest(AddPartitionsRequest request) {
-    request.setDbName(metaStoreMapping.transformInboundDatabaseName(request.getDbName()));
+    request.setDbName(metaStoreMapping.transformInboundCatalogName(request.getDbName()));
     request.setParts(transformInboundPartitions(request.getParts()));
     return request;
   }
@@ -329,7 +331,7 @@ public class DatabaseMappingImpl implements DatabaseMapping {
 
   @Override
   public DropPartitionsRequest transformInboundDropPartitionRequest(DropPartitionsRequest request) {
-    request.setDbName(metaStoreMapping.transformInboundDatabaseName(request.getDbName()));
+    request.setDbName(metaStoreMapping.transformInboundCatalogName(request.getDbName()));
     return request;
   }
 
@@ -368,7 +370,7 @@ public class DatabaseMappingImpl implements DatabaseMapping {
   public ColumnStatistics transformInboundColumnStatistics(ColumnStatistics columnStatistics) {
     columnStatistics
         .getStatsDesc()
-        .setDbName(metaStoreMapping.transformInboundDatabaseName(columnStatistics.getStatsDesc().getDbName()));
+        .setDbName(metaStoreMapping.transformInboundCatalogName(columnStatistics.getStatsDesc().getDbName()));
     return columnStatistics;
   }
 
@@ -376,7 +378,7 @@ public class DatabaseMappingImpl implements DatabaseMapping {
   public ColumnStatistics transformOutboundColumnStatistics(ColumnStatistics columnStatistics) {
     columnStatistics
         .getStatsDesc()
-        .setDbName(metaStoreMapping.transformOutboundDatabaseName(columnStatistics.getStatsDesc().getDbName()));
+        .setDbName(metaStoreMapping.transformOutboundCatalogName(columnStatistics.getStatsDesc().getDbName()));
     return columnStatistics;
   }
 
@@ -392,7 +394,7 @@ public class DatabaseMappingImpl implements DatabaseMapping {
 
   @Override
   public Function transformInboundFunction(Function function) {
-    function.setDbName(metaStoreMapping.transformInboundDatabaseName(function.getDbName()));
+    function.setDbName(metaStoreMapping.transformInboundCatalogName(function.getDbName()));
     return function;
   }
 
@@ -426,7 +428,7 @@ public class DatabaseMappingImpl implements DatabaseMapping {
   public LockRequest transformInboundLockRequest(LockRequest request) {
     if (request.isSetComponent()) {
       for (LockComponent component : request.getComponent()) {
-        component.setDbname(metaStoreMapping.transformInboundDatabaseName(component.getDbname()));
+        component.setDbname(metaStoreMapping.transformInboundCatalogName(component.getDbname()));
       }
     }
     return request;
@@ -434,7 +436,7 @@ public class DatabaseMappingImpl implements DatabaseMapping {
 
   @Override
   public CompactionRequest transformInboundCompactionRequest(CompactionRequest request) {
-    request.setDbname(metaStoreMapping.transformInboundDatabaseName(request.getDbname()));
+    request.setDbname(metaStoreMapping.transformInboundCatalogName(request.getDbname()));
     return request;
   }
 
@@ -446,21 +448,21 @@ public class DatabaseMappingImpl implements DatabaseMapping {
 
   @Override
   public Database transformInboundDatabase(Database database) {
-    database.setName(metaStoreMapping.transformInboundDatabaseName(database.getName()));
+    database.setName(metaStoreMapping.transformInboundCatalogName(database.getName()));
     return database;
   }
 
   @Override
   public List<PartitionSpec> transformInboundPartitionSpecs(List<PartitionSpec> partitionSpecs) {
     for (PartitionSpec partitionSpec : partitionSpecs) {
-      partitionSpec.setDbName(metaStoreMapping.transformInboundDatabaseName(partitionSpec.getDbName()));
+      partitionSpec.setDbName(metaStoreMapping.transformInboundCatalogName(partitionSpec.getDbName()));
     }
     return partitionSpecs;
   }
 
   @Override
   public GetTableRequest transformInboundGetTableRequest(GetTableRequest request) {
-    request.setDbName(metaStoreMapping.transformInboundDatabaseName(request.getDbName()));
+    request.setDbName(metaStoreMapping.transformInboundCatalogName(request.getDbName()));
     return request;
   }
 
@@ -472,7 +474,7 @@ public class DatabaseMappingImpl implements DatabaseMapping {
 
   @Override
   public GetTablesRequest transformInboundGetTablesRequest(GetTablesRequest request) {
-    request.setDbName(metaStoreMapping.transformInboundDatabaseName(request.getDbName()));
+    request.setDbName(metaStoreMapping.transformInboundCatalogName(request.getDbName()));
     return request;
   }
 
@@ -486,7 +488,7 @@ public class DatabaseMappingImpl implements DatabaseMapping {
 
   @Override
   public PartitionValuesRequest transformInboundPartitionValuesRequest(PartitionValuesRequest request) {
-    request.setDbName(transformInboundDatabaseName(request.getDbName()));
+    request.setDbName(transformInboundCatalogName(request.getDbName()));
     return request;
   }
 

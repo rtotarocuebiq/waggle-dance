@@ -30,6 +30,8 @@ import java.util.function.BiFunction;
 
 import javax.validation.constraints.NotNull;
 
+import com.hotels.bdp.waggledance.api.model.MappedDbs;
+import com.hotels.bdp.waggledance.mapping.model.CatalogMapping;
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.hive.metastore.api.Function;
 import org.apache.hadoop.hive.metastore.api.GetAllFunctionsResponse;
@@ -68,8 +70,9 @@ public class PrefixBasedDatabaseMappingService implements MappingEventListener {
   private final MetaStoreMappingFactory metaStoreMappingFactory;
   private final QueryMapping queryMapping;
   private final Map<String, DatabaseMapping> mappingsByPrefix;
-  private final Map<String, AllowList> mappedDbByPrefix;
-  private final Map<String, Map<String, AllowList>> mappedTblByPrefix;
+  private final Map<String, AllowList> mappedCatalogByPrefix;
+  private final Map<String, Map<String, AllowList>> mappedDbByPrefix;
+  private final Map<String, Map <String,Map<String, AllowList>>> mappedTblByPrefix;
 
   private DatabaseMapping primaryDatabaseMapping;
 
@@ -80,6 +83,7 @@ public class PrefixBasedDatabaseMappingService implements MappingEventListener {
     this.metaStoreMappingFactory = metaStoreMappingFactory;
     this.queryMapping = queryMapping;
     mappingsByPrefix = Collections.synchronizedMap(new LinkedHashMap<>());
+    mappedCatalogByPrefix = new ConcurrentHashMap<>();
     mappedDbByPrefix = new ConcurrentHashMap<>();
     mappedTblByPrefix = new ConcurrentHashMap<>();
     for (AbstractMetaStore abstractMetaStore : initialMetastores) {
@@ -89,27 +93,41 @@ public class PrefixBasedDatabaseMappingService implements MappingEventListener {
 
   private void add(AbstractMetaStore metaStore) {
     MetaStoreMapping metaStoreMapping = metaStoreMappingFactory.newInstance(metaStore);
-    DatabaseMapping databaseMapping = createDatabaseMapping(metaStoreMapping);
+    CatalogMapping catalogMapping = createCatalogMapping(metaStoreMapping);
 
     if (metaStore.getFederationType() == PRIMARY) {
-      primaryDatabaseMapping = databaseMapping;
+      primaryCatalogMapping = catalogMapping;
     }
+    mappingsByPrefix.put(metaStoreMapping.getCatalogPrefix(), catalogMapping);
 
-    mappingsByPrefix.put(metaStoreMapping.getDatabasePrefix(), databaseMapping);
-    AllowList mappedDbAllowList = new AllowList(metaStore.getMappedDatabases());
-    mappedDbByPrefix.put(metaStoreMapping.getDatabasePrefix(), mappedDbAllowList);
+    List<String> mappedCatalogs = metaStore.getMappedCatalogs();
+    mappedCatalogByPrefix.put(metaStoreMapping.getCatalogPrefix(), new AllowList(mappedCatalogs));
+
+    List<MappedDbs> mappedCatalogs = metaStore.getMappedCatalogs();
+    if(mappedCatalogs != null) {
+      Map<String, AllowList> mappedDbByCatalog = new HashMap<>();
+      for (MappedDbs mappedDb : mappedCatalogs) {
+        AllowList catalogAllowList = new AllowList(mappedDb.getMappedDBs());
+        mappedDbByCatalog.put(mappedDb.getCatalog(), catalogAllowList);
+      }
+      mappedDbByPrefix.put(metaStoreMapping.getCatalogPrefix(),mappedDbByCatalog);
+    }
 
     List<MappedTables> mappedTables = metaStore.getMappedTables();
-    if (mappedTables != null) {
-      Map<String, AllowList> mappedTblByDb = new HashMap<>();
-      for (MappedTables mapping : mappedTables) {
-        AllowList tableAllowList = new AllowList(mapping.getMappedTables());
-        mappedTblByDb.put(mapping.getDatabase(), tableAllowList);
+    if(mappedTables != null) {
+      Map<String, AllowList> mappedTablesbyDbsAndCatalog = new HashMap<>();
+      for (MappedTables mappedTable : mappedTables) {
+        AllowList tableAllowList = new AllowList(mappedTable.getMappedTables());
+        Map<String, AllowList> catalogToCatalog = mappedTblByPrefix.get(metaStoreMapping.getCatalogPrefix()).get(mappedTable.getCatalog());
+        if(catalogToCatalog==null)
+        {
+          catalogToCatalog = mappedTblByPrefix.get(metaStoreMapping.getCatalogPrefix()).put(mappedTable.getCatalog(),new HashMap<>());
+        }
+        catalogToCatalog.put(mappedTable.getCatalog(),tableAllowList);
       }
-      mappedTblByPrefix.put(metaStoreMapping.getDatabasePrefix(), mappedTblByDb);
+      mappedDbByPrefix.put(metaStoreMapping.getCatalogPrefix(),mappedTablesbyDbsAndCatalog);
     }
   }
-
   private DatabaseMapping createDatabaseMapping(MetaStoreMapping metaStoreMapping) {
     return new DatabaseMappingImpl(metaStoreMapping, queryMapping);
   }

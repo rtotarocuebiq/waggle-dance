@@ -26,14 +26,14 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.BiMap;
 
-public class DatabaseNameMapping extends MetaStoreMappingDecorator {
+public class CatalogNameMapping extends MetaStoreMappingDecorator {
 
-  private final static Logger log = LoggerFactory.getLogger(DatabaseNameMapping.class);
+  private final static Logger log = LoggerFactory.getLogger(CatalogNameMapping.class);
 
   private final Map<String, String> inbound;
   private final Map<String, String> outbound;
 
-  public DatabaseNameMapping(MetaStoreMapping metaStoreMapping, BiMap<String, String> databaseNameMap) {
+  public CatalogNameMapping(MetaStoreMapping metaStoreMapping, BiMap<String, String> databaseNameMap) {
     super(metaStoreMapping);
     if (databaseNameMap != null && !databaseNameMap.isEmpty()) {
       inbound = new HashMap<>(databaseNameMap.inverse());
@@ -45,28 +45,28 @@ public class DatabaseNameMapping extends MetaStoreMappingDecorator {
   }
 
   @Override
-  public String transformOutboundDatabaseName(String databaseName) {
-    return transformOutboundDatabaseNameMultiple(databaseName).get(0);
+  public String transformOutboundCatalogName(String databaseName) {
+    return transformOutboundCatalogNameMultiple(databaseName).get(0);
   }
 
   @Override
-  public List<String> transformOutboundDatabaseNameMultiple(String databaseName) {
+  public List<String> transformOutboundCatalogNameMultiple(String catalogName) {
     List<String> results = new ArrayList<>();
-    results.addAll(super.transformOutboundDatabaseNameMultiple(databaseName));
-    if (outbound.containsKey(databaseName)) {
-      String result = outbound.get(databaseName);
-      List<String> databases = super.transformOutboundDatabaseNameMultiple(result);
-      log.debug("transformOutboundDatabaseName '" + databaseName + "' to '" + databases + "'");
-      results.addAll(databases);
+    results.addAll(super.transformOutboundCatalogNameMultiple(catalogName));
+    if (outbound.containsKey(catalogName)) {
+      String result = outbound.get(catalogName);
+      List<String> catalogs = super.transformOutboundCatalogNameMultiple(result);
+      log.debug("transformOutboundCatalogName '" + catalogName + "' to '" + catalogs + "'");
+      results.addAll(catalogs);
     }
     return results;
   }
 
   @Override
-  public String transformInboundDatabaseName(String databaseName) {
-    String newDatabaseName = super.transformInboundDatabaseName(databaseName);
-    String result = inbound.getOrDefault(newDatabaseName, newDatabaseName);
-    log.debug("transformInboundDatabaseName '" + databaseName + "' to '" + result + "'");
+  public String transformInboundCatalogName(String catalogName) {
+    String newCatalogName = super.transformInboundCatalogName(catalogName);
+    String result = inbound.getOrDefault(newCatalogName, newCatalogName);
+    log.debug("transformInboundCatalogName '" + catalogName + "' to '" + result + "'");
     return result;
   }
 
