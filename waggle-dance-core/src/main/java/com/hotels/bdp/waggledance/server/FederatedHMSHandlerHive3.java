@@ -17,9 +17,30 @@ package com.hotels.bdp.waggledance.server;
 
 import java.util.List;
 
+import com.hotels.bdp.waggledance.api.model.AbstractMetaStore;
+import com.hotels.bdp.waggledance.mapping.model.DatabaseMapping;
+import org.apache.hadoop.hive.metastore.MetaStoreEventListener;
+import org.apache.hadoop.hive.metastore.RawStore;
+import org.apache.hadoop.hive.metastore.TransactionalMetaStoreEventListener;
+import org.apache.hadoop.hive.metastore.Warehouse;
+import org.apache.hadoop.hive.metastore.api.AddCheckConstraintRequest;
+import org.apache.hadoop.hive.metastore.api.AddDefaultConstraintRequest;
+import org.apache.hadoop.hive.metastore.api.AddNotNullConstraintRequest;
+import org.apache.hadoop.hive.metastore.api.AddUniqueConstraintRequest;
+import org.apache.hadoop.hive.metastore.api.AllocateTableWriteIdsRequest;
+import org.apache.hadoop.hive.metastore.api.AllocateTableWriteIdsResponse;
 import org.apache.hadoop.hive.metastore.api.AlreadyExistsException;
+import org.apache.hadoop.hive.metastore.api.AlterCatalogRequest;
 import org.apache.hadoop.hive.metastore.api.AlterISchemaRequest;
+import org.apache.hadoop.hive.metastore.api.CheckConstraintsRequest;
+import org.apache.hadoop.hive.metastore.api.CheckConstraintsResponse;
+import org.apache.hadoop.hive.metastore.api.CmRecycleRequest;
+import org.apache.hadoop.hive.metastore.api.CmRecycleResponse;
 import org.apache.hadoop.hive.metastore.api.CreateCatalogRequest;
+import org.apache.hadoop.hive.metastore.api.CreationMetadata;
+import org.apache.hadoop.hive.metastore.api.Database;
+import org.apache.hadoop.hive.metastore.api.DefaultConstraintsRequest;
+import org.apache.hadoop.hive.metastore.api.DefaultConstraintsResponse;
 import org.apache.hadoop.hive.metastore.api.DropCatalogRequest;
 import org.apache.hadoop.hive.metastore.api.FindSchemasByColsResp;
 import org.apache.hadoop.hive.metastore.api.FindSchemasByColsRqst;
@@ -28,19 +49,36 @@ import org.apache.hadoop.hive.metastore.api.GetCatalogResponse;
 import org.apache.hadoop.hive.metastore.api.GetCatalogsResponse;
 import org.apache.hadoop.hive.metastore.api.GetRuntimeStatsRequest;
 import org.apache.hadoop.hive.metastore.api.GetSerdeRequest;
+import org.apache.hadoop.hive.metastore.api.GetValidWriteIdsRequest;
+import org.apache.hadoop.hive.metastore.api.GetValidWriteIdsResponse;
+import org.apache.hadoop.hive.metastore.api.GrantRevokePrivilegeRequest;
+import org.apache.hadoop.hive.metastore.api.GrantRevokePrivilegeResponse;
+import org.apache.hadoop.hive.metastore.api.HiveObjectRef;
 import org.apache.hadoop.hive.metastore.api.ISchema;
 import org.apache.hadoop.hive.metastore.api.ISchemaName;
 import org.apache.hadoop.hive.metastore.api.InvalidObjectException;
 import org.apache.hadoop.hive.metastore.api.InvalidOperationException;
 import org.apache.hadoop.hive.metastore.api.LockResponse;
 import org.apache.hadoop.hive.metastore.api.MapSchemaVersionToSerdeRequest;
+import org.apache.hadoop.hive.metastore.api.Materialization;
 import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.hadoop.hive.metastore.api.NoSuchObjectException;
+import org.apache.hadoop.hive.metastore.api.NoSuchTxnException;
+import org.apache.hadoop.hive.metastore.api.NotNullConstraintsRequest;
+import org.apache.hadoop.hive.metastore.api.NotNullConstraintsResponse;
+import org.apache.hadoop.hive.metastore.api.NotificationEventsCountRequest;
+import org.apache.hadoop.hive.metastore.api.NotificationEventsCountResponse;
+import org.apache.hadoop.hive.metastore.api.ReplTblWriteIdStateRequest;
 import org.apache.hadoop.hive.metastore.api.RuntimeStat;
 import org.apache.hadoop.hive.metastore.api.SchemaVersion;
 import org.apache.hadoop.hive.metastore.api.SchemaVersionDescriptor;
 import org.apache.hadoop.hive.metastore.api.SerDeInfo;
 import org.apache.hadoop.hive.metastore.api.SetSchemaVersionStateRequest;
+import org.apache.hadoop.hive.metastore.api.Table;
+import org.apache.hadoop.hive.metastore.api.TxnAbortedException;
+import org.apache.hadoop.hive.metastore.api.UniqueConstraintsRequest;
+import org.apache.hadoop.hive.metastore.api.UniqueConstraintsResponse;
+import org.apache.hadoop.hive.metastore.api.UnknownDBException;
 import org.apache.hadoop.hive.metastore.api.WMAlterPoolRequest;
 import org.apache.hadoop.hive.metastore.api.WMAlterPoolResponse;
 import org.apache.hadoop.hive.metastore.api.WMAlterResourcePlanRequest;
@@ -75,6 +113,7 @@ import org.apache.hadoop.hive.metastore.api.WMGetTriggersForResourePlanRequest;
 import org.apache.hadoop.hive.metastore.api.WMGetTriggersForResourePlanResponse;
 import org.apache.hadoop.hive.metastore.api.WMValidateResourcePlanRequest;
 import org.apache.hadoop.hive.metastore.api.WMValidateResourcePlanResponse;
+import org.apache.hadoop.hive.metastore.txn.TxnStore;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -91,9 +130,71 @@ public class FederatedHMSHandlerHive3 extends FederatedHMSHandler
         super(databaseMappingService, notifyingFederationService);
     }
 
+
+    @Override
+    public int getThreadId()
+    {
+        return 0;
+    }
+
+    @Override
+    public RawStore getMS()
+            throws MetaException
+    {
+        return null;
+    }
+
+    @Override
+    public TxnStore getTxnHandler()
+    {
+        return null;
+    }
+
+    @Override
+    public Warehouse getWh()
+    {
+        return null;
+    }
+
+    @Override
+    public Database get_database_core(String catName, String name)
+            throws NoSuchObjectException, MetaException
+    {
+        DatabaseMapping databaseMapping = databaseMappingService.databaseMapping(name);
+        AbstractMetaStore abstractMetaStore = notifyingFederationService.get(databaseMapping.getMetastoreMappingName());
+
+        return null;
+    }
+
+    @Override
+    public Table get_table_core(String catName, String dbname, String name)
+            throws MetaException, NoSuchObjectException
+    {
+        return null;
+    }
+
+    @Override
+    public List<TransactionalMetaStoreEventListener> getTransactionalListeners()
+    {
+        return null;
+    }
+
+    @Override
+    public List<MetaStoreEventListener> getListeners()
+    {
+        return null;
+    }
+
     @Override
     public void create_catalog(CreateCatalogRequest createCatalogRequest)
             throws AlreadyExistsException, InvalidObjectException, MetaException, TException
+    {
+
+    }
+
+    @Override
+    public void alter_catalog(AlterCatalogRequest alterCatalogRequest)
+            throws NoSuchObjectException, InvalidOperationException, MetaException, TException
     {
 
     }
@@ -117,6 +218,132 @@ public class FederatedHMSHandlerHive3 extends FederatedHMSHandler
             throws NoSuchObjectException, InvalidOperationException, MetaException, TException
     {
 
+    }
+
+    @Override
+    public void add_unique_constraint(AddUniqueConstraintRequest addUniqueConstraintRequest)
+            throws NoSuchObjectException, MetaException, TException
+    {
+
+    }
+
+    @Override
+    public void add_not_null_constraint(AddNotNullConstraintRequest addNotNullConstraintRequest)
+            throws NoSuchObjectException, MetaException, TException
+    {
+
+    }
+
+    @Override
+    public void add_default_constraint(AddDefaultConstraintRequest addDefaultConstraintRequest)
+            throws NoSuchObjectException, MetaException, TException
+    {
+
+    }
+
+    @Override
+    public void add_check_constraint(AddCheckConstraintRequest addCheckConstraintRequest)
+            throws NoSuchObjectException, MetaException, TException
+    {
+
+    }
+
+    @Override
+    public void truncate_table(String s, String s1, List<String> list)
+            throws MetaException, TException
+    {
+
+    }
+
+    @Override
+    public List<String> get_materialized_views_for_rewriting(String s)
+            throws MetaException, TException
+    {
+        return null;
+    }
+
+    @Override
+    public Materialization get_materialization_invalidation_info(CreationMetadata creationMetadata, String s)
+            throws MetaException, InvalidOperationException, UnknownDBException, TException
+    {
+        return null;
+    }
+
+    @Override
+    public void update_creation_metadata(String s, String s1, String s2, CreationMetadata creationMetadata)
+            throws MetaException, InvalidOperationException, UnknownDBException, TException
+    {
+
+    }
+
+    @Override
+    public UniqueConstraintsResponse get_unique_constraints(UniqueConstraintsRequest uniqueConstraintsRequest)
+            throws MetaException, NoSuchObjectException, TException
+    {
+        return null;
+    }
+
+    @Override
+    public NotNullConstraintsResponse get_not_null_constraints(NotNullConstraintsRequest notNullConstraintsRequest)
+            throws MetaException, NoSuchObjectException, TException
+    {
+        return null;
+    }
+
+    @Override
+    public DefaultConstraintsResponse get_default_constraints(DefaultConstraintsRequest defaultConstraintsRequest)
+            throws MetaException, NoSuchObjectException, TException
+    {
+        return null;
+    }
+
+    @Override
+    public CheckConstraintsResponse get_check_constraints(CheckConstraintsRequest checkConstraintsRequest)
+            throws MetaException, NoSuchObjectException, TException
+    {
+        return null;
+    }
+
+    @Override
+    public GrantRevokePrivilegeResponse refresh_privileges(HiveObjectRef hiveObjectRef, String s, GrantRevokePrivilegeRequest grantRevokePrivilegeRequest)
+            throws MetaException, TException
+    {
+        return null;
+    }
+
+    @Override
+    public void repl_tbl_writeid_state(ReplTblWriteIdStateRequest replTblWriteIdStateRequest)
+            throws TException
+    {
+
+    }
+
+    @Override
+    public GetValidWriteIdsResponse get_valid_write_ids(GetValidWriteIdsRequest getValidWriteIdsRequest)
+            throws NoSuchTxnException, MetaException, TException
+    {
+        return null;
+    }
+
+    @Override
+    public AllocateTableWriteIdsResponse allocate_table_write_ids(AllocateTableWriteIdsRequest allocateTableWriteIdsRequest)
+            throws NoSuchTxnException, TxnAbortedException, MetaException, TException
+    {
+        return null;
+    }
+
+    @Override
+    public NotificationEventsCountResponse get_notification_events_count(NotificationEventsCountRequest notificationEventsCountRequest)
+            throws TException
+    {
+        return null;
+    }
+
+    @Override
+    public CmRecycleResponse cm_recycle(CmRecycleRequest cmRecycleRequest)
+            throws MetaException, TException
+    {
+        return null;
     }
 
     @Override

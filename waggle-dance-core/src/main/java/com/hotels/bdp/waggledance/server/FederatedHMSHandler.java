@@ -21,44 +21,27 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hive.metastore.MetaStoreEventListener;
-import org.apache.hadoop.hive.metastore.RawStore;
-import org.apache.hadoop.hive.metastore.TransactionalMetaStoreEventListener;
-import org.apache.hadoop.hive.metastore.Warehouse;
 import org.apache.hadoop.hive.metastore.api.AbortTxnRequest;
 import org.apache.hadoop.hive.metastore.api.AbortTxnsRequest;
-import org.apache.hadoop.hive.metastore.api.AddCheckConstraintRequest;
-import org.apache.hadoop.hive.metastore.api.AddDefaultConstraintRequest;
 import org.apache.hadoop.hive.metastore.api.AddDynamicPartitions;
 import org.apache.hadoop.hive.metastore.api.AddForeignKeyRequest;
-import org.apache.hadoop.hive.metastore.api.AddNotNullConstraintRequest;
 import org.apache.hadoop.hive.metastore.api.AddPartitionsRequest;
 import org.apache.hadoop.hive.metastore.api.AddPartitionsResult;
 import org.apache.hadoop.hive.metastore.api.AddPrimaryKeyRequest;
-import org.apache.hadoop.hive.metastore.api.AddUniqueConstraintRequest;
 import org.apache.hadoop.hive.metastore.api.AggrStats;
-import org.apache.hadoop.hive.metastore.api.AllocateTableWriteIdsRequest;
-import org.apache.hadoop.hive.metastore.api.AllocateTableWriteIdsResponse;
 import org.apache.hadoop.hive.metastore.api.AlreadyExistsException;
 import org.apache.hadoop.hive.metastore.api.CacheFileMetadataRequest;
 import org.apache.hadoop.hive.metastore.api.CacheFileMetadataResult;
-import org.apache.hadoop.hive.metastore.api.CheckConstraintsRequest;
-import org.apache.hadoop.hive.metastore.api.CheckConstraintsResponse;
 import org.apache.hadoop.hive.metastore.api.CheckLockRequest;
 import org.apache.hadoop.hive.metastore.api.ClearFileMetadataRequest;
 import org.apache.hadoop.hive.metastore.api.ClearFileMetadataResult;
-import org.apache.hadoop.hive.metastore.api.CmRecycleRequest;
-import org.apache.hadoop.hive.metastore.api.CmRecycleResponse;
 import org.apache.hadoop.hive.metastore.api.ColumnStatistics;
 import org.apache.hadoop.hive.metastore.api.CommitTxnRequest;
 import org.apache.hadoop.hive.metastore.api.CompactionRequest;
 import org.apache.hadoop.hive.metastore.api.CompactionResponse;
 import org.apache.hadoop.hive.metastore.api.ConfigValSecurityException;
-import org.apache.hadoop.hive.metastore.api.CreationMetadata;
 import org.apache.hadoop.hive.metastore.api.CurrentNotificationEventId;
 import org.apache.hadoop.hive.metastore.api.Database;
-import org.apache.hadoop.hive.metastore.api.DefaultConstraintsRequest;
-import org.apache.hadoop.hive.metastore.api.DefaultConstraintsResponse;
 import org.apache.hadoop.hive.metastore.api.DropConstraintRequest;
 import org.apache.hadoop.hive.metastore.api.DropPartitionsRequest;
 import org.apache.hadoop.hive.metastore.api.DropPartitionsResult;
@@ -84,8 +67,6 @@ import org.apache.hadoop.hive.metastore.api.GetTableRequest;
 import org.apache.hadoop.hive.metastore.api.GetTableResult;
 import org.apache.hadoop.hive.metastore.api.GetTablesRequest;
 import org.apache.hadoop.hive.metastore.api.GetTablesResult;
-import org.apache.hadoop.hive.metastore.api.GetValidWriteIdsRequest;
-import org.apache.hadoop.hive.metastore.api.GetValidWriteIdsResponse;
 import org.apache.hadoop.hive.metastore.api.GrantRevokePrivilegeRequest;
 import org.apache.hadoop.hive.metastore.api.GrantRevokePrivilegeResponse;
 import org.apache.hadoop.hive.metastore.api.GrantRevokeRoleRequest;
@@ -103,17 +84,12 @@ import org.apache.hadoop.hive.metastore.api.InvalidPartitionException;
 import org.apache.hadoop.hive.metastore.api.LockComponent;
 import org.apache.hadoop.hive.metastore.api.LockRequest;
 import org.apache.hadoop.hive.metastore.api.LockResponse;
-import org.apache.hadoop.hive.metastore.api.Materialization;
 import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.hadoop.hive.metastore.api.NoSuchLockException;
 import org.apache.hadoop.hive.metastore.api.NoSuchObjectException;
 import org.apache.hadoop.hive.metastore.api.NoSuchTxnException;
-import org.apache.hadoop.hive.metastore.api.NotNullConstraintsRequest;
-import org.apache.hadoop.hive.metastore.api.NotNullConstraintsResponse;
 import org.apache.hadoop.hive.metastore.api.NotificationEventRequest;
 import org.apache.hadoop.hive.metastore.api.NotificationEventResponse;
-import org.apache.hadoop.hive.metastore.api.NotificationEventsCountRequest;
-import org.apache.hadoop.hive.metastore.api.NotificationEventsCountResponse;
 import org.apache.hadoop.hive.metastore.api.OpenTxnRequest;
 import org.apache.hadoop.hive.metastore.api.OpenTxnsResponse;
 import org.apache.hadoop.hive.metastore.api.Partition;
@@ -132,7 +108,6 @@ import org.apache.hadoop.hive.metastore.api.PrincipalType;
 import org.apache.hadoop.hive.metastore.api.PrivilegeBag;
 import org.apache.hadoop.hive.metastore.api.PutFileMetadataRequest;
 import org.apache.hadoop.hive.metastore.api.PutFileMetadataResult;
-import org.apache.hadoop.hive.metastore.api.ReplTblWriteIdStateRequest;
 import org.apache.hadoop.hive.metastore.api.Role;
 import org.apache.hadoop.hive.metastore.api.SQLCheckConstraint;
 import org.apache.hadoop.hive.metastore.api.SQLDefaultConstraint;
@@ -153,13 +128,10 @@ import org.apache.hadoop.hive.metastore.api.ThriftHiveMetastore;
 import org.apache.hadoop.hive.metastore.api.TxnAbortedException;
 import org.apache.hadoop.hive.metastore.api.TxnOpenException;
 import org.apache.hadoop.hive.metastore.api.Type;
-import org.apache.hadoop.hive.metastore.api.UniqueConstraintsRequest;
-import org.apache.hadoop.hive.metastore.api.UniqueConstraintsResponse;
 import org.apache.hadoop.hive.metastore.api.UnknownDBException;
 import org.apache.hadoop.hive.metastore.api.UnknownPartitionException;
 import org.apache.hadoop.hive.metastore.api.UnknownTableException;
 import org.apache.hadoop.hive.metastore.api.UnlockRequest;
-import org.apache.hadoop.hive.metastore.txn.TxnStore;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -184,8 +156,8 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
   private static final Logger LOG = LoggerFactory.getLogger(FederatedHMSHandler.class);
 
   private static final String INVOCATION_LOG_NAME = "com.hotels.bdp.waggledance.server.invocation-log";
-  final MappingEventListener databaseMappingService;
-  final NotifyingFederationService notifyingFederationService;
+  MappingEventListener databaseMappingService;
+  NotifyingFederationService notifyingFederationService;
   Configuration conf;
 
   FederatedHMSHandler(
@@ -384,13 +356,6 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
   }
 
   @Override
-  public void truncate_table(String s, String s1, List<String> list)
-          throws MetaException, TException
-  {
-
-  }
-
-  @Override
   @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
   public List<String> get_tables(String db_name, String pattern) throws MetaException, TException {
     DatabaseMapping mapping = databaseMappingService.databaseMapping(db_name);
@@ -399,8 +364,6 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
     //TODO: check null as catName
     return mapping.getMetastoreFilter().filterTableNames(null,db_name, resultTables);
   }
-
-
 
   @Override
   @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
@@ -1231,13 +1194,6 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
     return getPrimaryClient().grant_revoke_privileges(request);
   }
 
-  @Override
-  public GrantRevokePrivilegeResponse refresh_privileges(HiveObjectRef hiveObjectRef, GrantRevokePrivilegeRequest grantRevokePrivilegeRequest)
-          throws MetaException, TException
-  {
-    return null;
-  }
-
   private DatabaseMapping checkWritePermissionsForPrivileges(PrivilegeBag privileges) throws NoSuchObjectException {
     DatabaseMapping mapping = databaseMappingService
         .databaseMapping(privileges.getPrivileges().get(0).getHiveObject().getDbName());
@@ -1305,27 +1261,6 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
   @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
   public void commit_txn(CommitTxnRequest rqst) throws NoSuchTxnException, TxnAbortedException, TException {
     getPrimaryClient().commit_txn(rqst);
-  }
-
-  @Override
-  public void repl_tbl_writeid_state(ReplTblWriteIdStateRequest replTblWriteIdStateRequest)
-          throws TException
-  {
-
-  }
-
-  @Override
-  public GetValidWriteIdsResponse get_valid_write_ids(GetValidWriteIdsRequest getValidWriteIdsRequest)
-          throws NoSuchTxnException, MetaException, TException
-  {
-    return null;
-  }
-
-  @Override
-  public AllocateTableWriteIdsResponse allocate_table_write_ids(AllocateTableWriteIdsRequest allocateTableWriteIdsRequest)
-          throws NoSuchTxnException, TxnAbortedException, MetaException, TException
-  {
-    return null;
   }
 
   @Override
@@ -1418,64 +1353,6 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
   @Override
   public void init() throws MetaException {}
 
-  @Override
-  public int getThreadId()
-  {
-    return 0;
-  }
-
-  @Override
-  public RawStore getMS()
-          throws MetaException
-  {
-    return null;
-  }
-
-  @Override
-  public TxnStore getTxnHandler()
-  {
-    return null;
-  }
-
-  @Override
-  public Warehouse getWh()
-  {
-    return null;
-  }
-
-  @Override
-  public Database get_database_core(String catName, String name)
-          throws NoSuchObjectException, MetaException
-  {
-    return null;
-  }
-
-  @Override
-  public Table get_table_core(String catName, String dbname, String name)
-          throws MetaException, NoSuchObjectException
-  {
-    return null;
-  }
-
-  @Override
-  public Table get_table_core(String dbName, String name)
-          throws MetaException, NoSuchObjectException
-  {
-    return null;
-  }
-
-  @Override
-  public List<TransactionalMetaStoreEventListener> getTransactionalListeners()
-  {
-    return null;
-  }
-
-  @Override
-  public List<MetaStoreEventListener> getListeners()
-  {
-    return null;
-  }
-
   // Hive 2.1.0 methods
   @Override
   @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
@@ -1495,34 +1372,6 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
   @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
   public void add_foreign_key(AddForeignKeyRequest req) throws NoSuchObjectException, MetaException, TException {
     getPrimaryClient().add_foreign_key(req);
-  }
-
-  @Override
-  public void add_unique_constraint(AddUniqueConstraintRequest addUniqueConstraintRequest)
-          throws NoSuchObjectException, MetaException, TException
-  {
-
-  }
-
-  @Override
-  public void add_not_null_constraint(AddNotNullConstraintRequest addNotNullConstraintRequest)
-          throws NoSuchObjectException, MetaException, TException
-  {
-
-  }
-
-  @Override
-  public void add_default_constraint(AddDefaultConstraintRequest addDefaultConstraintRequest)
-          throws NoSuchObjectException, MetaException, TException
-  {
-
-  }
-
-  @Override
-  public void add_check_constraint(AddCheckConstraintRequest addCheckConstraintRequest)
-          throws NoSuchObjectException, MetaException, TException
-  {
-
   }
 
   @Override
@@ -1630,13 +1479,6 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
   }
 
   @Override
-  public CmRecycleResponse cm_recycle(CmRecycleRequest cmRecycleRequest)
-          throws MetaException, TException
-  {
-    return null;
-  }
-
-  @Override
   @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
   public GetAllFunctionsResponse get_all_functions() throws TException {
     return databaseMappingService
@@ -1654,13 +1496,6 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
   @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
   public CurrentNotificationEventId get_current_notificationEventId() throws TException {
     return getPrimaryClient().get_current_notificationEventId();
-  }
-
-  @Override
-  public NotificationEventsCountResponse get_notification_events_count(NotificationEventsCountRequest notificationEventsCountRequest)
-          throws TException
-  {
-    return null;
   }
 
   @Override
@@ -1697,34 +1532,6 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
     return mapping
         .transformOutboundForeignKeysResponse(
             mapping.getClient().get_foreign_keys(mapping.transformInboundForeignKeysRequest(request)));
-  }
-
-  @Override
-  public UniqueConstraintsResponse get_unique_constraints(UniqueConstraintsRequest uniqueConstraintsRequest)
-          throws MetaException, NoSuchObjectException, TException
-  {
-    return null;
-  }
-
-  @Override
-  public NotNullConstraintsResponse get_not_null_constraints(NotNullConstraintsRequest notNullConstraintsRequest)
-          throws MetaException, NoSuchObjectException, TException
-  {
-    return null;
-  }
-
-  @Override
-  public DefaultConstraintsResponse get_default_constraints(DefaultConstraintsRequest defaultConstraintsRequest)
-          throws MetaException, NoSuchObjectException, TException
-  {
-    return null;
-  }
-
-  @Override
-  public CheckConstraintsResponse get_check_constraints(CheckConstraintsRequest checkConstraintsRequest)
-          throws MetaException, NoSuchObjectException, TException
-  {
-    return null;
   }
 
   @Override
@@ -1824,13 +1631,6 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
   }
 
   @Override
-  public List<String> get_materialized_views_for_rewriting(String s)
-          throws MetaException, TException
-  {
-    return null;
-  }
-
-  @Override
   @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
   public GetTableResult get_table_req(GetTableRequest req) throws MetaException, NoSuchObjectException, TException {
     DatabaseMapping mapping = getDbMappingAndCheckTableAllowed(req.getDbName(), req.getTblName());
@@ -1851,20 +1651,6 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
         .get_table_objects_by_name_req(mapping.transformInboundGetTablesRequest(req));
     result.setTables(mapping.getMetastoreFilter().filterTables(result.getTables()));
     return mapping.transformOutboundGetTablesResult(result);
-  }
-
-  @Override
-  public Map<String, Materialization> get_materialization_invalidation_info(String s, List<String> list)
-          throws MetaException, InvalidOperationException, UnknownDBException, TException
-  {
-    return null;
-  }
-
-  @Override
-  public void update_creation_metadata(String s, String s1, String s2, CreationMetadata creationMetadata)
-          throws MetaException, InvalidOperationException, UnknownDBException, TException
-  {
-
   }
 
   @Override

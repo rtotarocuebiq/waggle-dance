@@ -29,7 +29,7 @@
     <module>waggle-dance-boot</module>
     <module>waggle-dance-integration-tests</module>
     <module>waggle-dance</module>
-    <module>waggle-dance-rpm</module>
+<!--    <module>waggle-dance-rpm</module>-->
   </modules>
 
   <properties>
@@ -37,7 +37,7 @@
     <spring-boot.version>2.0.4.RELEASE</spring-boot.version>
     <hadoop.version>3.1.0</hadoop.version>
     <hamcrest.version>2.2</hamcrest.version>
-    <hive.version>3.0.0</hive.version>
+    <hive.version>3.1.2</hive.version>
     <junit.version>4.13.1</junit.version>
     <mockito.version>3.5.15</mockito.version>
     <dropwizard.metrics.version>3.1.5</dropwizard.metrics.version>
