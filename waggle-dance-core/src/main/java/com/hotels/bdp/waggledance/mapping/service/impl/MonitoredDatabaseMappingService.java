@@ -37,15 +37,15 @@ public class MonitoredDatabaseMappingService implements MappingEventListener {
   }
 
   @Override
-  public CatalogMapping primaryDatabaseMapping() {
-    CatalogMapping primaryDatabaseMapping = wrapped.primaryDatabaseMapping();
+  public CatalogMapping primaryCatalogMapping() {
+    CatalogMapping primaryDatabaseMapping = wrapped.primaryCatalogMapping();
     CurrentMonitoredMetaStoreHolder.monitorMetastore(primaryDatabaseMapping.getMetastoreMappingName());
     return primaryDatabaseMapping;
   }
 
   @Override
-  public CatalogMapping databaseMapping(@NotNull String databaseName) throws NoSuchObjectException {
-    CatalogMapping databaseMapping = wrapped.databaseMapping(databaseName);
+  public CatalogMapping catalogMapping(@NotNull String catalogName) throws NoSuchObjectException {
+    CatalogMapping databaseMapping = wrapped.catalogMapping(catalogName);
     CurrentMonitoredMetaStoreHolder.monitorMetastore(databaseMapping.getMetastoreMappingName());
     return databaseMapping;
   }
@@ -62,6 +62,20 @@ public class MonitoredDatabaseMappingService implements MappingEventListener {
   }
 
   @Override
+  public void checkDatabaseAllowed(String catalog, String databaseName, CatalogMapping mapping)
+          throws NoSuchObjectException
+  {
+    //TODO:
+  }
+
+  @Override
+  public List<String> filterDatabases(String catalog, List<String> databaseName, CatalogMapping mapping)
+  {
+    //TODO:
+    return null;
+  }
+
+  @Override
   public PanopticOperationHandler getPanopticOperationHandler() {
     PanopticOperationHandler handler = wrapped.getPanopticOperationHandler();
     CurrentMonitoredMetaStoreHolder.monitorMetastore();
@@ -69,8 +83,8 @@ public class MonitoredDatabaseMappingService implements MappingEventListener {
   }
 
   @Override
-  public List<CatalogMapping> getDatabaseMappings() {
-    return wrapped.getDatabaseMappings();
+  public List<CatalogMapping> getCatalogMappings() {
+    return wrapped.getCatalogMappings();
   }
 
   @Override

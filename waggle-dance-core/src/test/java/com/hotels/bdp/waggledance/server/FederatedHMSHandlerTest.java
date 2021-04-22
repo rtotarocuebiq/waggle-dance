@@ -235,7 +235,7 @@ public class FederatedHMSHandlerTest {
     PanopticOperationHandler panopticHandler = Mockito.mock(PanopticOperationHandler.class);
     when(databaseMappingService.getPanopticOperationHandler()).thenReturn(panopticHandler);
     String pattern = "*";
-    when(panopticHandler.getAllDatabases(pattern)).thenReturn(Lists.newArrayList(DB_P, DB_S));
+    when(panopticHandler.getAllCatalogs(pattern)).thenReturn(Lists.newArrayList(DB_P, DB_S));
     List<String> result = handler.get_databases(pattern);
     assertThat(result.size(), is(2));
     assertThat(result, contains(DB_P, DB_S));
@@ -245,7 +245,7 @@ public class FederatedHMSHandlerTest {
   public void get_all_databases() throws TException {
     PanopticOperationHandler panopticHandler = Mockito.mock(PanopticOperationHandler.class);
     when(databaseMappingService.getPanopticOperationHandler()).thenReturn(panopticHandler);
-    when(panopticHandler.getAllDatabases()).thenReturn(Lists.newArrayList(DB_P, DB_S));
+    when(panopticHandler.getAllCatalogs()).thenReturn(Lists.newArrayList(DB_P, DB_S));
     List<String> result = handler.get_all_databases();
     assertThat(result.size(), is(2));
     assertThat(result, contains(DB_P, DB_S));

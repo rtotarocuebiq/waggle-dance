@@ -29,13 +29,13 @@ public interface DatabaseMappingService extends Closeable {
   /**
    * @return the {@link CatalogMapping} that maps to the primary metastore
    */
-  CatalogMapping primaryDatabaseMapping();
+  CatalogMapping primaryCatalogMapping();
 
   /**
-   * @param databaseName given database name
+   * @param catalogName given database name
    * @return the {@link CatalogMapping} that maps to the given databaseName
    */
-  CatalogMapping databaseMapping(@NotNull String databaseName) throws NoSuchObjectException;
+  CatalogMapping catalogMapping(@NotNull String catalogName) throws NoSuchObjectException;
 
   /**
    * Checks that the table from the specified database is allowed and throws a {@link NoSuchObjectException} if not.
@@ -48,7 +48,18 @@ public interface DatabaseMappingService extends Closeable {
    */
   List<String> filterTables(String catalog, String databaseName, List<String> tableNames, CatalogMapping mapping);
 
+  /**
+   * Checks that the database from the specified catalog is allowed and throws a {@link NoSuchObjectException} if not.
+   */
+  void checkDatabaseAllowed(String catalog, String databaseName,
+          CatalogMapping mapping) throws NoSuchObjectException;
+
+  /**
+   * Filters out the database which are not allowed and returns the rest.
+   */
+  List<String> filterDatabases(String catalog, List<String> databaseName, CatalogMapping mapping);
+
   PanopticOperationHandler getPanopticOperationHandler();
 
-  List<CatalogMapping> getDatabaseMappings();
+  List<CatalogMapping> getCatalogMappings();
 }

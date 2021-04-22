@@ -62,7 +62,7 @@ public interface MetaStoreMapping extends Closeable {
 
   ThriftHiveMetastore.Iface getClient();
 
-   MetaStoreFilterHook getMetastoreFilter();
+  MetaStoreFilterHook getMetastoreFilter();
 
   String getCatalogPrefix();
 

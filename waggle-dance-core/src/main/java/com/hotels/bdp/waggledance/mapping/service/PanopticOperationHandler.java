@@ -51,7 +51,7 @@ public abstract class PanopticOperationHandler {
    *
    * @return list of all databases
    */
-  public abstract List<String> getAllDatabases();
+  public abstract List<String> getAllCatalogs();
 
   /**
    * Implements {@link HMSHandler#get_database(String)} over multiple metastores
@@ -59,9 +59,9 @@ public abstract class PanopticOperationHandler {
    * @param databasePattern pattern to match
    * @return list of all databases that match the passed pattern
    */
-  public abstract List<String> getAllDatabases(String databasePattern);
+  public abstract List<String> getAllCatalogs(String databasePattern);
 
-  protected List<String> getAllDatabases(
+  protected List<String> getAllCatalogs(
       Map<CatalogMapping, String> databaseMappingsForPattern,
       BiFunction<String, CatalogMapping, Boolean> filter) {
     List<GetAllDatabasesByPatternRequest> allRequests = new ArrayList<>();
@@ -85,19 +85,20 @@ public abstract class PanopticOperationHandler {
    * @param tableTypes table types to match
    * @return list of table metadata
    */
-  abstract public List<TableMeta> getTableMeta(String databasePatterns, String tablePatterns, List<String> tableTypes);
+  abstract public List<TableMeta> getTableMeta(String catalog, String databasePatterns, String tablePatterns, List<String> tableTypes);
 
   protected List<TableMeta> getTableMeta(
+      String database,
       String tablePatterns,
       List<String> tableTypes,
-      Map<CatalogMapping, String> databaseMappingsForPattern,
+      Map<CatalogMapping, String> catalogMappingsForPattern,
       BiFunction<TableMeta, CatalogMapping, Boolean> filter) {
     List<GetTableMetaRequest> allRequests = new ArrayList<>();
 
-    for (Entry<CatalogMapping, String> mappingWithPattern : databaseMappingsForPattern.entrySet()) {
+    for (Entry<CatalogMapping, String> mappingWithPattern : catalogMappingsForPattern.entrySet()) {
       CatalogMapping mapping = mappingWithPattern.getKey();
       GetTableMetaRequest tableMetaRequest = new GetTableMetaRequest(mapping, mappingWithPattern.getValue(),
-          tablePatterns, tableTypes, filter);
+              database, tablePatterns, tableTypes, filter);
       allRequests.add(tableMetaRequest);
     }
 

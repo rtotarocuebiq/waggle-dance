@@ -183,45 +183,45 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
   private static final Logger LOG = LoggerFactory.getLogger(FederatedHMSHandler.class);
 
   private static final String INVOCATION_LOG_NAME = "com.hotels.bdp.waggledance.server.invocation-log";
-  final MappingEventListener databaseMappingService;
+  final MappingEventListener catalogMappingService;
   final NotifyingFederationService notifyingFederationService;
   Configuration conf;
 
   FederatedHMSHandler(
-      MappingEventListener databaseMappingService,
+      MappingEventListener catalogMappingService,
       NotifyingFederationService notifyingFederationService) {
     super("waggle-dance-handler");
-    this.databaseMappingService = databaseMappingService;
+    this.catalogMappingService = catalogMappingService;
     this.notifyingFederationService = notifyingFederationService;
-    this.notifyingFederationService.subscribe(databaseMappingService);
+    this.notifyingFederationService.subscribe(catalogMappingService);
   }
 
   private ThriftHiveMetastore.Iface getPrimaryClient() throws TException {
-    return databaseMappingService.primaryDatabaseMapping().getClient();
+    return catalogMappingService.primaryCatalogMapping().getClient();
   }
 
-  private CatalogMapping checkWritePermissions(String databaseName) throws TException {
-    CatalogMapping mapping = databaseMappingService.databaseMapping(databaseName);
-    mapping.checkWritePermissions(databaseName);
+  private CatalogMapping checkWritePermissions(String catalogName, String databaseName) throws TException {
+    CatalogMapping mapping = catalogMappingService.catalogMapping(catalogName);
+    mapping.checkWritePermissions(catalogName, databaseName);
     return mapping;
   }
 
-  private CatalogMapping getDbMappingAndCheckTableAllowed(String dbName, String tblName) throws NoSuchObjectException {
-    CatalogMapping mapping = databaseMappingService.databaseMapping(dbName);
-    databaseMappingService.checkTableAllowed(dbName, tblName, mapping);
+  private CatalogMapping getDbMappingAndCheckTableAllowed(String catalogName, String dbName, String tblName) throws NoSuchObjectException {
+    CatalogMapping mapping = catalogMappingService.catalogMapping(dbName);
+    catalogMappingService.checkTableAllowed(catalogName, dbName, tblName, mapping);
     return mapping;
   }
 
-  private CatalogMapping checkWritePermissionsAndCheckTableAllowed(String dbName, String tblName) throws TException {
-    CatalogMapping mapping = checkWritePermissions(dbName);
-    databaseMappingService.checkTableAllowed(dbName, tblName, mapping);
+  private CatalogMapping checkWritePermissionsAndCheckTableAllowed(String catalogName, String dbName, String tblName) throws TException {
+    CatalogMapping mapping = checkWritePermissions(catalogName, dbName);
+    catalogMappingService.checkTableAllowed(catalogName,dbName, tblName, mapping);
     return mapping;
   }
 
-  private void checkWritePermissionsAndCheckTableAllowed(String dest_db, String dest_table_name, CatalogMapping mapping)
+  private void checkWritePermissionsAndCheckTableAllowed(String dest_cat, String dest_db, String dest_table_name, CatalogMapping mapping)
       throws NoSuchObjectException {
-    mapping.checkWritePermissions(dest_db);
-    databaseMappingService.checkTableAllowed(dest_db, dest_table_name, mapping);
+    mapping.checkWritePermissions(dest_cat, dest_db);
+    catalogMappingService.checkTableAllowed(dest_cat, dest_db, dest_table_name, mapping);
   }
 
   @Override
@@ -233,8 +233,8 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
   public void shutdown() {
     super.shutdown();
     try {
-      notifyingFederationService.unsubscribe(databaseMappingService);
-      databaseMappingService.close();
+      notifyingFederationService.unsubscribe(catalogMappingService);
+      catalogMappingService.close();
     } catch (IOException e) {
       LOG.warn("Error shutting down federated handler", e);
     }
@@ -258,7 +258,7 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
   @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
   public void create_database(Database database)
       throws AlreadyExistsException, InvalidObjectException, MetaException, TException {
-    CatalogMapping mapping = databaseMappingService.primaryDatabaseMapping();
+    CatalogMapping mapping = catalogMappingService.primaryCatalogMapping();
     mapping.createDatabase(mapping.transformInboundDatabase(database));
   }
 
@@ -266,10 +266,10 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
   @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
   public Database get_database(String name) throws NoSuchObjectException, MetaException, TException {
     LOG.info("Fetching database {}", name);
-    CatalogMapping mapping = databaseMappingService.databaseMapping(name);
-    LOG.info("Mapping is '{}'", mapping.getDatabasePrefix());
-    Database result = mapping.getClient().get_database(mapping.transformInboundDatabaseName(name));
-    return mapping.transformOutboundDatabase(mapping.getMetastoreFilter().filterDatabase(result));
+    CatalogMapping mapping = catalogMappingService.catalogMapping(name);
+    LOG.info("Mapping is '{}'", mapping.getCatalogPrefix());
+    Database result = mapping.getClient().get_database(mapping.transformInboundCatalogName(name));
+    return mapping.transformOutboundCatalog(mapping.getMetastoreFilter().filterDatabase(result));
   }
 
   @Override
@@ -277,19 +277,19 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
   public void drop_database(String name, boolean deleteData, boolean cascade)
       throws NoSuchObjectException, InvalidOperationException, MetaException, TException {
     CatalogMapping mapping = checkWritePermissions(name);
-    mapping.getClient().drop_database(mapping.transformInboundDatabaseName(name), deleteData, cascade);
+    mapping.getClient().drop_database(mapping.transformInboundCatalogName(name), deleteData, cascade);
   }
 
   @Override
   @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
   public List<String> get_databases(String pattern) throws MetaException, TException {
-    return databaseMappingService.getPanopticOperationHandler().getAllDatabases(pattern);
+    return catalogMappingService.getPanopticOperationHandler().getAllCatalogs(pattern);
   }
 
   @Override
   @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
   public List<String> get_all_databases() throws MetaException, TException {
-    return databaseMappingService.getPanopticOperationHandler().getAllDatabases();
+    return catalogMappingService.getPanopticOperationHandler().getAllCatalogs();
   }
 
   @Override
@@ -299,7 +299,7 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
     mapping.checkWritePermissions(db.getName());
     mapping
         .getClient()
-        .alter_database(mapping.transformInboundDatabaseName(dbname), mapping.transformInboundDatabase(db));
+        .alter_database(mapping.transformInboundCatalogName(dbname), mapping.transformInboundDatabase(db));
   }
 
   @Override
@@ -332,7 +332,7 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
   public List<FieldSchema> get_fields(String db_name, String table_name)
       throws MetaException, UnknownTableException, UnknownDBException, TException {
     CatalogMapping mapping = getDbMappingAndCheckTableAllowed(db_name, table_name);
-    return mapping.getClient().get_fields(mapping.transformInboundDatabaseName(db_name), table_name);
+    return mapping.getClient().get_fields(mapping.transformInboundCatalogName(db_name), table_name);
   }
 
   @Override
@@ -340,7 +340,7 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
   public List<FieldSchema> get_schema(String db_name, String table_name)
       throws MetaException, UnknownTableException, UnknownDBException, TException {
     CatalogMapping mapping = getDbMappingAndCheckTableAllowed(db_name, table_name);
-    return mapping.getClient().get_schema(mapping.transformInboundDatabaseName(db_name), table_name);
+    return mapping.getClient().get_schema(mapping.transformInboundCatalogName(db_name), table_name);
   }
 
   @Override
@@ -364,7 +364,7 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
   public void drop_table(String dbname, String name, boolean deleteData)
       throws NoSuchObjectException, MetaException, TException {
     CatalogMapping mapping = checkWritePermissionsAndCheckTableAllowed(dbname, name);
-    mapping.getClient().drop_table(mapping.transformInboundDatabaseName(dbname), name, deleteData);
+    mapping.getClient().drop_table(mapping.transformInboundCatalogName(dbname), name, deleteData);
   }
 
   @Override
@@ -378,7 +378,7 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
     CatalogMapping mapping = checkWritePermissionsAndCheckTableAllowed(dbname, name);
     mapping
         .getClient()
-        .drop_table_with_environment_context(mapping.transformInboundDatabaseName(dbname), name, deleteData,
+        .drop_table_with_environment_context(mapping.transformInboundCatalogName(dbname), name, deleteData,
             environment_context);
   }
 
@@ -392,9 +392,9 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
   @Override
   @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
   public List<String> get_tables(String db_name, String pattern) throws MetaException, TException {
-    CatalogMapping mapping = databaseMappingService.databaseMapping(db_name);
-    List<String> resultTables = mapping.getClient().get_tables(mapping.transformInboundDatabaseName(db_name), pattern);
-    resultTables = databaseMappingService.filterTables(db_name, resultTables, mapping);
+    CatalogMapping mapping = catalogMappingService.catalogMapping(db_name);
+    List<String> resultTables = mapping.getClient().get_tables(mapping.transformInboundCatalogName(db_name), pattern);
+    resultTables = catalogMappingService.filterTables(db_name, resultTables, mapping);
     //TODO: check null as catName
     return mapping.getMetastoreFilter().filterTableNames(null,db_name, resultTables);
   }
@@ -404,9 +404,9 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
   @Override
   @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
   public List<String> get_all_tables(String db_name) throws MetaException, TException {
-    CatalogMapping mapping = databaseMappingService.databaseMapping(db_name);
-    List<String> resultTables =  mapping.getClient().get_all_tables(mapping.transformInboundDatabaseName(db_name));
-    resultTables = databaseMappingService.filterTables(db_name, resultTables, mapping);
+    CatalogMapping mapping = catalogMappingService.catalogMapping(db_name);
+    List<String> resultTables =  mapping.getClient().get_all_tables(mapping.transformInboundCatalogName(db_name));
+    resultTables = catalogMappingService.filterTables(db_name, resultTables, mapping);
     //TODO: check null as catName
     return mapping.getMetastoreFilter().filterTableNames(null, db_name, resultTables);
   }
@@ -415,7 +415,7 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
   @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
   public Table get_table(String dbname, String tbl_name) throws MetaException, NoSuchObjectException, TException {
     CatalogMapping mapping = getDbMappingAndCheckTableAllowed(dbname, tbl_name);
-    Table table = mapping.getClient().get_table(mapping.transformInboundDatabaseName(dbname), tbl_name);
+    Table table = mapping.getClient().get_table(mapping.transformInboundCatalogName(dbname), tbl_name);
     return mapping
         .transformOutboundTable(mapping.getMetastoreFilter().filterTable(table));
   }
@@ -424,11 +424,11 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
   @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
   public List<Table> get_table_objects_by_name(String dbname, List<String> tbl_names)
       throws MetaException, InvalidOperationException, UnknownDBException, TException {
-    CatalogMapping mapping = databaseMappingService.databaseMapping(dbname);
-    List<String> filteredTables = databaseMappingService.filterTables(dbname, tbl_names, mapping);
+    CatalogMapping mapping = catalogMappingService.catalogMapping(dbname);
+    List<String> filteredTables = catalogMappingService.filterTables(dbname, tbl_names, mapping);
     List<Table> tables = mapping
         .getClient()
-        .get_table_objects_by_name(mapping.transformInboundDatabaseName(dbname), filteredTables);
+        .get_table_objects_by_name(mapping.transformInboundCatalogName(dbname), filteredTables);
     tables = mapping.getMetastoreFilter().filterTables(tables);
     List<Table> outboundTables = new ArrayList<>(tables.size());
     for (Table table : tables) {
@@ -441,10 +441,10 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
   @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
   public List<String> get_table_names_by_filter(String dbname, String filter, short max_tables)
       throws MetaException, InvalidOperationException, UnknownDBException, TException {
-    CatalogMapping mapping = databaseMappingService.databaseMapping(dbname);
+    CatalogMapping mapping = catalogMappingService.catalogMapping(dbname);
     List<String> resultTables = mapping.getClient()
-        .get_table_names_by_filter(mapping.transformInboundDatabaseName(dbname), filter, max_tables);
-    List<String> result = databaseMappingService.filterTables(dbname, resultTables, mapping);
+        .get_table_names_by_filter(mapping.transformInboundCatalogName(dbname), filter, max_tables);
+    List<String> result = catalogMappingService.filterTables(dbname, resultTables, mapping);
     //TODO: check null as catName
     return mapping.getMetastoreFilter().filterTableNames(null, dbname, result);
   }
@@ -455,10 +455,10 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
       throws InvalidOperationException, MetaException, TException {
     CatalogMapping mapping = checkWritePermissionsAndCheckTableAllowed(dbname, tbl_name);
     mapping.checkWritePermissions(new_tbl.getDbName());
-    databaseMappingService.checkTableAllowed(new_tbl.getDbName(), new_tbl.getTableName(), mapping);
+    catalogMappingService.checkTableAllowed(new_tbl.getDbName(), new_tbl.getTableName(), mapping);
     mapping
         .getClient()
-        .alter_table(mapping.transformInboundDatabaseName(dbname), tbl_name, mapping.transformInboundTable(new_tbl));
+        .alter_table(mapping.transformInboundCatalogName(dbname), tbl_name, mapping.transformInboundTable(new_tbl));
   }
 
   @Override
@@ -473,7 +473,7 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
     checkWritePermissionsAndCheckTableAllowed(new_tbl.getDbName(), new_tbl.getTableName(), mapping);
     mapping
         .getClient()
-        .alter_table_with_environment_context(mapping.transformInboundDatabaseName(dbname), tbl_name,
+        .alter_table_with_environment_context(mapping.transformInboundCatalogName(dbname), tbl_name,
             mapping.transformInboundTable(new_tbl), environment_context);
   }
 
@@ -504,7 +504,7 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
     if (!new_parts.isEmpty()) {
       // Need to pick one mapping and use that for permissions and getting the client.
       // If the partitions added are for different databases in different clients that won't work with waggle-dance
-      CatalogMapping mapping = databaseMappingService.databaseMapping(new_parts.get(0).getDbName());
+      CatalogMapping mapping = catalogMappingService.catalogMapping(new_parts.get(0).getDbName());
       for (Partition partition : new_parts) {
         checkWritePermissionsAndCheckTableAllowed(partition.getDbName(), partition.getTableName(), mapping);
       }
@@ -520,7 +520,7 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
     if (!new_parts.isEmpty()) {
       // Need to pick one mapping and use that for permissions and getting the client.
       // If the partitions added are for different databases in different clients that won't work with waggle-dance
-      CatalogMapping mapping = databaseMappingService.databaseMapping(new_parts.get(0).getDbName());
+      CatalogMapping mapping = catalogMappingService.catalogMapping(new_parts.get(0).getDbName());
       for (PartitionSpec partitionSpec : new_parts) {
         checkWritePermissionsAndCheckTableAllowed(partitionSpec.getDbName(), partitionSpec.getTableName(), mapping);
       }
@@ -536,7 +536,7 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
     CatalogMapping mapping = checkWritePermissionsAndCheckTableAllowed(db_name, tbl_name);
     Partition result = mapping
         .getClient()
-        .append_partition(mapping.transformInboundDatabaseName(db_name), tbl_name, part_vals);
+        .append_partition(mapping.transformInboundCatalogName(db_name), tbl_name, part_vals);
     return mapping.transformOutboundPartition(result);
   }
 
@@ -566,7 +566,7 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
     CatalogMapping mapping = checkWritePermissionsAndCheckTableAllowed(db_name, tbl_name);
     Partition partition = mapping
         .getClient()
-        .append_partition_with_environment_context(mapping.transformInboundDatabaseName(db_name), tbl_name, part_vals,
+        .append_partition_with_environment_context(mapping.transformInboundCatalogName(db_name), tbl_name, part_vals,
             environment_context);
     return mapping.transformOutboundPartition(partition);
   }
@@ -578,7 +578,7 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
     CatalogMapping mapping = checkWritePermissionsAndCheckTableAllowed(db_name, tbl_name);
     Partition partition = mapping
         .getClient()
-        .append_partition_by_name(mapping.transformInboundDatabaseName(db_name), tbl_name, part_name);
+        .append_partition_by_name(mapping.transformInboundCatalogName(db_name), tbl_name, part_name);
     return mapping.transformOutboundPartition(partition);
   }
 
@@ -593,7 +593,7 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
     CatalogMapping mapping = checkWritePermissionsAndCheckTableAllowed(db_name, tbl_name);
     Partition partition = mapping
         .getClient()
-        .append_partition_by_name_with_environment_context(mapping.transformInboundDatabaseName(db_name), tbl_name,
+        .append_partition_by_name_with_environment_context(mapping.transformInboundCatalogName(db_name), tbl_name,
             part_name, environment_context);
     return mapping.transformOutboundPartition(partition);
   }
@@ -605,7 +605,7 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
     CatalogMapping mapping = checkWritePermissionsAndCheckTableAllowed(db_name, tbl_name);
     return mapping
         .getClient()
-        .drop_partition(mapping.transformInboundDatabaseName(db_name), tbl_name, part_vals, deleteData);
+        .drop_partition(mapping.transformInboundCatalogName(db_name), tbl_name, part_vals, deleteData);
   }
 
   @Override
@@ -620,7 +620,7 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
     CatalogMapping mapping = checkWritePermissionsAndCheckTableAllowed(db_name, tbl_name);
     return mapping
         .getClient()
-        .drop_partition_with_environment_context(mapping.transformInboundDatabaseName(db_name), tbl_name, part_vals,
+        .drop_partition_with_environment_context(mapping.transformInboundCatalogName(db_name), tbl_name, part_vals,
             deleteData, environment_context);
   }
 
@@ -631,7 +631,7 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
     CatalogMapping mapping = checkWritePermissionsAndCheckTableAllowed(db_name, tbl_name);
     return mapping
         .getClient()
-        .drop_partition_by_name(mapping.transformInboundDatabaseName(db_name), tbl_name, part_name, deleteData);
+        .drop_partition_by_name(mapping.transformInboundCatalogName(db_name), tbl_name, part_name, deleteData);
   }
 
   @Override
@@ -646,7 +646,7 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
     CatalogMapping mapping = checkWritePermissionsAndCheckTableAllowed(db_name, tbl_name);
     return mapping
         .getClient()
-        .drop_partition_by_name_with_environment_context(mapping.transformInboundDatabaseName(db_name), tbl_name,
+        .drop_partition_by_name_with_environment_context(mapping.transformInboundCatalogName(db_name), tbl_name,
             part_name, deleteData, environment_context);
   }
 
@@ -666,7 +666,7 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
   public Partition get_partition(String db_name, String tbl_name, List<String> part_vals)
       throws MetaException, NoSuchObjectException, TException {
     CatalogMapping mapping = getDbMappingAndCheckTableAllowed(db_name, tbl_name);
-    Partition partition = mapping.getClient().get_partition(mapping.transformInboundDatabaseName(db_name), tbl_name, part_vals);
+    Partition partition = mapping.getClient().get_partition(mapping.transformInboundCatalogName(db_name), tbl_name, part_vals);
     return mapping
         .transformOutboundPartition(mapping.getMetastoreFilter().filterPartition(partition));
   }
@@ -684,8 +684,8 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
     checkWritePermissionsAndCheckTableAllowed(dest_db, dest_table_name, mapping);
     Partition result = mapping
         .getClient()
-        .exchange_partition(partitionSpecs, mapping.transformInboundDatabaseName(source_db), source_table_name,
-            mapping.transformInboundDatabaseName(dest_db), dest_table_name);
+        .exchange_partition(partitionSpecs, mapping.transformInboundCatalogName(source_db), source_table_name,
+            mapping.transformInboundCatalogName(dest_db), dest_table_name);
     return mapping.transformOutboundPartition(result);
   }
 
@@ -701,7 +701,7 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
     CatalogMapping mapping = getDbMappingAndCheckTableAllowed(db_name, tbl_name);
     Partition partition = mapping
         .getClient()
-        .get_partition_with_auth(mapping.transformInboundDatabaseName(db_name), tbl_name, part_vals, user_name,
+        .get_partition_with_auth(mapping.transformInboundCatalogName(db_name), tbl_name, part_vals, user_name,
             group_names);
     return mapping.transformOutboundPartition(mapping.getMetastoreFilter().filterPartition(partition));
   }
@@ -713,7 +713,7 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
     CatalogMapping mapping = getDbMappingAndCheckTableAllowed(db_name, tbl_name);
     Partition partition = mapping
         .getClient()
-        .get_partition_by_name(mapping.transformInboundDatabaseName(db_name), tbl_name, part_name);
+        .get_partition_by_name(mapping.transformInboundCatalogName(db_name), tbl_name, part_name);
     return mapping.transformOutboundPartition(mapping.getMetastoreFilter().filterPartition(partition));
   }
 
@@ -724,7 +724,7 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
     CatalogMapping mapping = getDbMappingAndCheckTableAllowed(db_name, tbl_name);
     List<Partition> partitions = mapping
         .getClient()
-        .get_partitions(mapping.transformInboundDatabaseName(db_name), tbl_name, max_parts);
+        .get_partitions(mapping.transformInboundCatalogName(db_name), tbl_name, max_parts);
     return mapping.transformOutboundPartitions(mapping.getMetastoreFilter().filterPartitions(partitions));
   }
 
@@ -740,7 +740,7 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
     CatalogMapping mapping = getDbMappingAndCheckTableAllowed(db_name, tbl_name);
     List<Partition> partitions = mapping
         .getClient()
-        .get_partitions_with_auth(mapping.transformInboundDatabaseName(db_name), tbl_name, max_parts, user_name,
+        .get_partitions_with_auth(mapping.transformInboundCatalogName(db_name), tbl_name, max_parts, user_name,
             group_names);
     return mapping.transformOutboundPartitions(mapping.getMetastoreFilter().filterPartitions(partitions));
   }
@@ -752,7 +752,7 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
     CatalogMapping mapping = getDbMappingAndCheckTableAllowed(db_name, tbl_name);
     List<PartitionSpec> partitionSpecs = mapping
         .getClient()
-        .get_partitions_pspec(mapping.transformInboundDatabaseName(db_name), tbl_name, max_parts);
+        .get_partitions_pspec(mapping.transformInboundCatalogName(db_name), tbl_name, max_parts);
     return mapping.transformOutboundPartitionSpecs(mapping.getMetastoreFilter().filterPartitionSpecs(partitionSpecs));
   }
 
@@ -762,7 +762,7 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
       throws MetaException, TException {
     CatalogMapping mapping = getDbMappingAndCheckTableAllowed(db_name, tbl_name);
     List<String> result = mapping.getClient()
-        .get_partition_names(mapping.transformInboundDatabaseName(db_name), tbl_name, max_parts);
+        .get_partition_names(mapping.transformInboundCatalogName(db_name), tbl_name, max_parts);
     //TODO: check null as catName
     return mapping.getMetastoreFilter().filterPartitionNames(null, db_name, tbl_name, result);
   }
@@ -774,7 +774,7 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
     CatalogMapping mapping = getDbMappingAndCheckTableAllowed(db_name, tbl_name);
     List<Partition> partitions = mapping
         .getClient()
-        .get_partitions_ps(mapping.transformInboundDatabaseName(db_name), tbl_name, part_vals, max_parts);
+        .get_partitions_ps(mapping.transformInboundCatalogName(db_name), tbl_name, part_vals, max_parts);
     return mapping.transformOutboundPartitions(mapping.getMetastoreFilter().filterPartitions(partitions));
   }
 
@@ -791,7 +791,7 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
     CatalogMapping mapping = getDbMappingAndCheckTableAllowed(db_name, tbl_name);
     List<Partition> partitions = mapping
         .getClient()
-        .get_partitions_ps_with_auth(mapping.transformInboundDatabaseName(db_name), tbl_name, part_vals, max_parts,
+        .get_partitions_ps_with_auth(mapping.transformInboundCatalogName(db_name), tbl_name, part_vals, max_parts,
             user_name, group_names);
     return mapping.transformOutboundPartitions(mapping.getMetastoreFilter().filterPartitions(partitions));
   }
@@ -803,7 +803,7 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
     CatalogMapping mapping = getDbMappingAndCheckTableAllowed(db_name, tbl_name);
     List<String> result = mapping
         .getClient()
-        .get_partition_names_ps(mapping.transformInboundDatabaseName(db_name), tbl_name, part_vals, max_parts);
+        .get_partition_names_ps(mapping.transformInboundCatalogName(db_name), tbl_name, part_vals, max_parts);
     //TODO: check null as catName
     return mapping.getMetastoreFilter().filterPartitionNames(null, db_name, tbl_name, result);
   }
@@ -815,7 +815,7 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
     CatalogMapping mapping = getDbMappingAndCheckTableAllowed(db_name, tbl_name);
     List<Partition> partitions = mapping
         .getClient()
-        .get_partitions_by_filter(mapping.transformInboundDatabaseName(db_name), tbl_name, filter, max_parts);
+        .get_partitions_by_filter(mapping.transformInboundCatalogName(db_name), tbl_name, filter, max_parts);
     return mapping.transformOutboundPartitions(mapping.getMetastoreFilter().filterPartitions(partitions));
   }
 
@@ -826,7 +826,7 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
     CatalogMapping mapping = getDbMappingAndCheckTableAllowed(db_name, tbl_name);
     List<PartitionSpec> partitionSpecs = mapping
         .getClient()
-        .get_part_specs_by_filter(mapping.transformInboundDatabaseName(db_name), tbl_name, filter, max_parts);
+        .get_part_specs_by_filter(mapping.transformInboundCatalogName(db_name), tbl_name, filter, max_parts);
     return mapping.transformOutboundPartitionSpecs(mapping.getMetastoreFilter().filterPartitionSpecs(partitionSpecs));
   }
 
@@ -849,7 +849,7 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
     CatalogMapping mapping = getDbMappingAndCheckTableAllowed(db_name, tbl_name);
     List<Partition> partitions = mapping
         .getClient()
-        .get_partitions_by_names(mapping.transformInboundDatabaseName(db_name), tbl_name, names);
+        .get_partitions_by_names(mapping.transformInboundCatalogName(db_name), tbl_name, names);
     return mapping.transformOutboundPartitions(mapping.getMetastoreFilter().filterPartitions(partitions));
   }
 
@@ -861,7 +861,7 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
     checkWritePermissionsAndCheckTableAllowed(new_part.getDbName(), new_part.getTableName());
     mapping
         .getClient()
-        .alter_partition(mapping.transformInboundDatabaseName(db_name), tbl_name,
+        .alter_partition(mapping.transformInboundCatalogName(db_name), tbl_name,
             mapping.transformInboundPartition(new_part));
   }
 
@@ -875,7 +875,7 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
     }
     mapping
         .getClient()
-        .alter_partitions(mapping.transformInboundDatabaseName(db_name), tbl_name,
+        .alter_partitions(mapping.transformInboundCatalogName(db_name), tbl_name,
             mapping.transformInboundPartitions(new_parts));
   }
 
@@ -891,7 +891,7 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
     checkWritePermissionsAndCheckTableAllowed(new_part.getDbName(), new_part.getTableName(), mapping);
     mapping
         .getClient()
-        .alter_partition_with_environment_context(mapping.transformInboundDatabaseName(db_name), tbl_name,
+        .alter_partition_with_environment_context(mapping.transformInboundCatalogName(db_name), tbl_name,
             mapping.transformInboundPartition(new_part), environment_context);
   }
 
@@ -901,7 +901,7 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
       throws InvalidOperationException, MetaException, TException {
     CatalogMapping mapping = checkWritePermissionsAndCheckTableAllowed(db_name, tbl_name);
     checkWritePermissionsAndCheckTableAllowed(new_part.getDbName(), new_part.getTableName(), mapping);
-    mapping.getClient().rename_partition(mapping.transformInboundDatabaseName(db_name), tbl_name, part_vals, new_part);
+    mapping.getClient().rename_partition(mapping.transformInboundCatalogName(db_name), tbl_name, part_vals, new_part);
   }
 
   @Override
@@ -941,7 +941,7 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
     CatalogMapping mapping = checkWritePermissionsAndCheckTableAllowed(db_name, tbl_name);
     mapping
         .getClient()
-        .markPartitionForEvent(mapping.transformInboundDatabaseName(db_name), tbl_name, part_vals, eventType);
+        .markPartitionForEvent(mapping.transformInboundCatalogName(db_name), tbl_name, part_vals, eventType);
   }
 
   @Override
@@ -956,7 +956,7 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
     CatalogMapping mapping = getDbMappingAndCheckTableAllowed(db_name,tbl_name);
     return mapping
         .getClient()
-        .isPartitionMarkedForEvent(mapping.transformInboundDatabaseName(db_name), tbl_name, part_vals, eventType);
+        .isPartitionMarkedForEvent(mapping.transformInboundCatalogName(db_name), tbl_name, part_vals, eventType);
   }
 
   @Override
@@ -984,7 +984,7 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
     CatalogMapping mapping = getDbMappingAndCheckTableAllowed(db_name, tbl_name);
     ColumnStatistics result = mapping
         .getClient()
-        .get_table_column_statistics(mapping.transformInboundDatabaseName(db_name), tbl_name, col_name);
+        .get_table_column_statistics(mapping.transformInboundCatalogName(db_name), tbl_name, col_name);
     return mapping.transformOutboundColumnStatistics(result);
   }
 
@@ -999,7 +999,7 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
     CatalogMapping mapping = getDbMappingAndCheckTableAllowed(db_name, tbl_name);
     ColumnStatistics result = mapping
         .getClient()
-        .get_partition_column_statistics(mapping.transformInboundDatabaseName(db_name), tbl_name, part_name, col_name);
+        .get_partition_column_statistics(mapping.transformInboundCatalogName(db_name), tbl_name, part_name, col_name);
     return mapping.transformOutboundColumnStatistics(result);
   }
 
@@ -1032,8 +1032,8 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
   public boolean set_aggr_stats_for(SetPartitionsStatsRequest request)
       throws NoSuchObjectException, InvalidObjectException, MetaException, InvalidInputException, TException {
     if (!request.getColStats().isEmpty()) {
-      CatalogMapping mapping = databaseMappingService
-          .databaseMapping(request.getColStats().get(0).getStatsDesc().getDbName());
+      CatalogMapping mapping = catalogMappingService
+          .catalogMapping(request.getColStats().get(0).getStatsDesc().getDbName());
       for (ColumnStatistics stats : request.getColStats()) {
         checkWritePermissionsAndCheckTableAllowed(stats.getStatsDesc().getDbName(), stats.getStatsDesc().getTableName(), mapping);
       }
@@ -1049,7 +1049,7 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
     CatalogMapping mapping = checkWritePermissionsAndCheckTableAllowed(db_name, tbl_name);
     return mapping
         .getClient()
-        .delete_partition_column_statistics(mapping.transformInboundDatabaseName(db_name), tbl_name, part_name,
+        .delete_partition_column_statistics(mapping.transformInboundCatalogName(db_name), tbl_name, part_name,
             col_name);
   }
 
@@ -1060,7 +1060,7 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
     CatalogMapping mapping = checkWritePermissionsAndCheckTableAllowed(db_name, tbl_name);
     return mapping
         .getClient()
-        .delete_table_column_statistics(mapping.transformInboundDatabaseName(db_name), tbl_name, col_name);
+        .delete_table_column_statistics(mapping.transformInboundCatalogName(db_name), tbl_name, col_name);
   }
 
   @Override
@@ -1075,7 +1075,7 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
   @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
   public void drop_function(String dbName, String funcName) throws NoSuchObjectException, MetaException, TException {
     CatalogMapping mapping = checkWritePermissions(dbName);
-    mapping.getClient().drop_function(mapping.transformInboundDatabaseName(dbName), funcName);
+    mapping.getClient().drop_function(mapping.transformInboundCatalogName(dbName), funcName);
   }
 
   @Override
@@ -1086,24 +1086,24 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
     mapping.checkWritePermissions(newFunc.getDbName());
     mapping
         .getClient()
-        .alter_function(mapping.transformInboundDatabaseName(dbName), funcName,
+        .alter_function(mapping.transformInboundCatalogName(dbName), funcName,
             mapping.transformInboundFunction(newFunc));
   }
 
   @Override
   @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
   public List<String> get_functions(String dbName, String pattern) throws MetaException, TException {
-    CatalogMapping mapping = databaseMappingService.databaseMapping(dbName);
-    return mapping.getClient().get_functions(mapping.transformInboundDatabaseName(dbName), pattern);
+    CatalogMapping mapping = catalogMappingService.catalogMapping(dbName);
+    return mapping.getClient().get_functions(mapping.transformInboundCatalogName(dbName), pattern);
   }
 
   @Override
   @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
   public Function get_function(String dbName, String funcName) throws MetaException, NoSuchObjectException, TException {
-    CatalogMapping mapping = databaseMappingService.databaseMapping(dbName);
+    CatalogMapping mapping = catalogMappingService.catalogMapping(dbName);
     return mapping
         .transformOutboundFunction(
-            mapping.getClient().get_function(mapping.transformInboundDatabaseName(dbName), funcName));
+            mapping.getClient().get_function(mapping.transformInboundCatalogName(dbName), funcName));
   }
 
   @Override
@@ -1176,9 +1176,9 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
       throws MetaException, TException {
     CatalogMapping mapping;
     if (hiveObject.getDbName() == null) {
-      mapping = databaseMappingService.primaryDatabaseMapping();
+      mapping = catalogMappingService.primaryCatalogMapping();
     } else {
-      mapping = databaseMappingService.databaseMapping(hiveObject.getDbName());
+      mapping = catalogMappingService.catalogMapping(hiveObject.getDbName());
     }
     return mapping.getClient().get_privilege_set(mapping.transformInboundHiveObjectRef(hiveObject), user_name,
             group_names);
@@ -1191,7 +1191,7 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
       PrincipalType principal_type,
       HiveObjectRef hiveObject)
       throws MetaException, TException {
-    CatalogMapping mapping = databaseMappingService.databaseMapping(hiveObject.getDbName());
+    CatalogMapping mapping = catalogMappingService.catalogMapping(hiveObject.getDbName());
     List<HiveObjectPrivilege> privileges = mapping
         .getClient()
         .list_privileges(principal_name, principal_type, mapping.transformInboundHiveObjectRef(hiveObject));
@@ -1231,8 +1231,8 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
   }
 
   private CatalogMapping checkWritePermissionsForPrivileges(PrivilegeBag privileges) throws NoSuchObjectException {
-    CatalogMapping mapping = databaseMappingService
-        .databaseMapping(privileges.getPrivileges().get(0).getHiveObject().getDbName());
+    CatalogMapping mapping = catalogMappingService
+        .catalogMapping(privileges.getPrivileges().get(0).getHiveObject().getDbName());
     for (HiveObjectPrivilege privilege : privileges.getPrivileges()) {
       HiveObjectRef obj = privilege.getHiveObject();
       mapping.checkWritePermissions(obj.getDbName());
@@ -1246,8 +1246,8 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
   @Override
   @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
   public List<String> set_ugi(String user_name, List<String> group_names) throws MetaException, TException {
-    List<CatalogMapping> mappings = databaseMappingService.getDatabaseMappings();
-    return databaseMappingService.getPanopticOperationHandler().setUgi(user_name, group_names, mappings);
+    List<CatalogMapping> mappings = catalogMappingService.getCatalogMappings();
+    return catalogMappingService.getPanopticOperationHandler().setUgi(user_name, group_names, mappings);
   }
 
   @Override
@@ -1323,7 +1323,7 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
   @Override
   @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
   public LockResponse lock(LockRequest rqst) throws NoSuchTxnException, TxnAbortedException, TException {
-    CatalogMapping mapping = databaseMappingService.primaryDatabaseMapping();
+    CatalogMapping mapping = catalogMappingService.primaryCatalogMapping();
     List<LockComponent> components = rqst.getComponent();
     for (LockComponent component : components) {
       checkWritePermissionsAndCheckTableAllowed(component.getDbname(), component.getTablename());
@@ -1366,7 +1366,7 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
   @Override
   @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
   public void compact(CompactionRequest rqst) throws TException {
-    CatalogMapping mapping = databaseMappingService.primaryDatabaseMapping();
+    CatalogMapping mapping = catalogMappingService.primaryCatalogMapping();
     checkWritePermissionsAndCheckTableAllowed(rqst.getDbname(), rqst.getTablename(), mapping);
     mapping.getClient().compact(mapping.transformInboundCompactionRequest(rqst));
   }
@@ -1539,7 +1539,7 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
     CatalogMapping mapping = checkWritePermissionsAndCheckTableAllowed(db_name, tbl_name);
     mapping
         .getClient()
-        .alter_partitions_with_environment_context(mapping.transformInboundDatabaseName(db_name), tbl_name, new_parts,
+        .alter_partitions_with_environment_context(mapping.transformInboundCatalogName(db_name), tbl_name, new_parts,
             environment_context);
   }
 
@@ -1550,13 +1550,13 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
     CatalogMapping mapping = checkWritePermissionsAndCheckTableAllowed(dbname, tbl_name);
     mapping
         .getClient()
-        .alter_table_with_cascade(mapping.transformInboundDatabaseName(dbname), tbl_name, new_tbl, cascade);
+        .alter_table_with_cascade(mapping.transformInboundCatalogName(dbname), tbl_name, new_tbl, cascade);
   }
 
   @Override
   @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
   public CacheFileMetadataResult cache_file_metadata(CacheFileMetadataRequest req) throws TException {
-    CatalogMapping mapping = databaseMappingService.primaryDatabaseMapping();
+    CatalogMapping mapping = catalogMappingService.primaryCatalogMapping();
     checkWritePermissionsAndCheckTableAllowed(req.getDbName(), req.getTblName());
     return mapping.getClient().cache_file_metadata(mapping.transformInboundCacheFileMetadataRequest(req));
   }
@@ -1596,15 +1596,15 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
     checkWritePermissionsAndCheckTableAllowed(dest_db, dest_table_name, mapping);
     List<Partition> result = mapping
         .getClient()
-        .exchange_partitions(partitionSpecs, mapping.transformInboundDatabaseName(source_db), source_table_name,
-            mapping.transformInboundDatabaseName(dest_db), dest_table_name);
+        .exchange_partitions(partitionSpecs, mapping.transformInboundCatalogName(source_db), source_table_name,
+            mapping.transformInboundCatalogName(dest_db), dest_table_name);
     return mapping.transformOutboundPartitions(result);
   }
 
   @Override
   @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
   public FireEventResponse fire_listener_event(FireEventRequest rqst) throws TException {
-    CatalogMapping mapping = databaseMappingService.databaseMapping(rqst.getDbName());
+    CatalogMapping mapping = catalogMappingService.catalogMapping(rqst.getDbName());
     return mapping.getClient().fire_listener_event(mapping.transformInboundFireEventRequest(rqst));
   }
 
@@ -1624,9 +1624,9 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
   @Override
   @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
   public GetAllFunctionsResponse get_all_functions() throws TException {
-    return databaseMappingService
+    return catalogMappingService
         .getPanopticOperationHandler()
-        .getAllFunctions(databaseMappingService.getDatabaseMappings());
+        .getAllFunctions(catalogMappingService.getCatalogMappings());
   }
 
   @Override
@@ -1658,7 +1658,7 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
     CatalogMapping mapping = getDbMappingAndCheckTableAllowed(db_name, table_name);
     return mapping
         .getClient()
-        .get_fields_with_environment_context(mapping.transformInboundDatabaseName(db_name), table_name,
+        .get_fields_with_environment_context(mapping.transformInboundCatalogName(db_name), table_name,
             environment_context);
   }
 
@@ -1731,7 +1731,7 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
     CatalogMapping mapping = getDbMappingAndCheckTableAllowed(db_name, tbl_name);
     return mapping
         .getClient()
-        .get_num_partitions_by_filter(mapping.transformInboundDatabaseName(db_name), tbl_name, filter);
+        .get_num_partitions_by_filter(mapping.transformInboundCatalogName(db_name), tbl_name, filter);
   }
 
   @Override
@@ -1754,7 +1754,7 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
     CatalogMapping mapping = getDbMappingAndCheckTableAllowed(db_name, table_name);
     return mapping
         .getClient()
-        .get_schema_with_environment_context(mapping.transformInboundDatabaseName(db_name), table_name,
+        .get_schema_with_environment_context(mapping.transformInboundCatalogName(db_name), table_name,
             environment_context);
   }
 
@@ -1762,7 +1762,7 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
   @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
   public List<TableMeta> get_table_meta(String db_patterns, String tbl_patterns, List<String> tbl_types)
       throws MetaException {
-    return databaseMappingService.getPanopticOperationHandler()
+    return catalogMappingService.getPanopticOperationHandler()
         .getTableMeta(db_patterns, tbl_patterns, tbl_types);
   }
 
@@ -1801,9 +1801,9 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
   @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
   public List<String> get_tables_by_type(String db_name, String pattern, String tableType)
       throws MetaException, TException {
-    CatalogMapping mapping = databaseMappingService.databaseMapping(db_name);
-    List<String> resultTables = mapping.getClient().get_tables_by_type(mapping.transformInboundDatabaseName(db_name), pattern, tableType);
-    List<String> result = databaseMappingService.filterTables(db_name, resultTables, mapping);
+    CatalogMapping mapping = catalogMappingService.catalogMapping(db_name);
+    List<String> resultTables = mapping.getClient().get_tables_by_type(mapping.transformInboundCatalogName(db_name), pattern, tableType);
+    List<String> result = catalogMappingService.filterTables(db_name, resultTables, mapping);
     //TODO: check null as catName
     return mapping.getMetastoreFilter().filterTableNames(null, db_name, result);
   }
@@ -1828,8 +1828,8 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
   @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
   public GetTablesResult get_table_objects_by_name_req(GetTablesRequest req)
       throws MetaException, InvalidOperationException, UnknownDBException, TException {
-    CatalogMapping mapping = databaseMappingService.databaseMapping(req.getDbName());
-    List<String> filteredTables = databaseMappingService.filterTables(req.getDbName(), req.getTblNames(), mapping);
+    CatalogMapping mapping = catalogMappingService.catalogMapping(req.getDbName());
+    List<String> filteredTables = catalogMappingService.filterTables(req.getDbName(), req.getTblNames(), mapping);
     req.setTblNames(filteredTables);
     GetTablesResult result = mapping
         .getClient()
@@ -1848,7 +1848,7 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
   @Override
   @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
   public CompactionResponse compact2(CompactionRequest rqst) throws TException {
-    CatalogMapping mapping = databaseMappingService.primaryDatabaseMapping();
+    CatalogMapping mapping = catalogMappingService.primaryCatalogMapping();
     checkWritePermissionsAndCheckTableAllowed(rqst.getDbname(), rqst.getTablename(), mapping);
     return mapping.getClient().compact2(mapping.transformInboundCompactionRequest(rqst));
   }

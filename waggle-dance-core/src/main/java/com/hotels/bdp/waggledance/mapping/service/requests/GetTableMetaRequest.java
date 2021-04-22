@@ -27,6 +27,7 @@ import com.hotels.bdp.waggledance.mapping.model.CatalogMapping;
 public class GetTableMetaRequest implements RequestCallable<List<TableMeta>> {
 
   private final CatalogMapping mapping;
+  private final String catalogPattern;
   private final String dbPattern;
   private final String tablePattern;
   private final List<String> tableTypes;
@@ -34,10 +35,12 @@ public class GetTableMetaRequest implements RequestCallable<List<TableMeta>> {
 
   public GetTableMetaRequest(
       CatalogMapping mapping,
+      String catalogPattern,
       String dbPattern,
       String tablePattern,
       List<String> tableTypes,
       BiFunction<TableMeta, CatalogMapping, Boolean> filter) {
+    this.catalogPattern = catalogPattern;
     this.mapping = mapping;
     this.dbPattern = dbPattern;
     this.tablePattern = tablePattern;
@@ -47,6 +50,7 @@ public class GetTableMetaRequest implements RequestCallable<List<TableMeta>> {
 
   @Override
   public List<TableMeta> call() throws TException {
+    //TODO dove inserisco i catalog?
     List<TableMeta> tables = mapping.getClient().get_table_meta(dbPattern, tablePattern, tableTypes);
     List<TableMeta> mappedTableMeta = new ArrayList<>();
     for (TableMeta tableMeta : tables) {

@@ -138,7 +138,7 @@ public class FederatedHMSHandlerHive3 extends FederatedHMSHandler
     public Materialization get_materialization_invalidation_info(CreationMetadata creationMetadata, String validTxnList)
             throws MetaException, InvalidOperationException, UnknownDBException, TException
     {
-        CatalogMapping databaseMapping = databaseMappingService.databaseMapping(creationMetadata.getDbName());
+        CatalogMapping databaseMapping = catalogMappingService.catalogMapping(creationMetadata.getDbName());
         //TODO: authorization?
         return databaseMapping.getClient().get_materialization_invalidation_info(creationMetadata,validTxnList);
     }

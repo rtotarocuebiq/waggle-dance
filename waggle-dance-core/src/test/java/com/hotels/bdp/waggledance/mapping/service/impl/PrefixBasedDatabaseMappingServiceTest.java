@@ -357,7 +357,7 @@ public class PrefixBasedDatabaseMappingServiceTest {
     when(federatedDatabaseClient.get_all_databases()).thenReturn(Lists.newArrayList(FEDERATED_DB));
 
     PanopticOperationHandler handler = service.getPanopticOperationHandler();
-    assertThat(handler.getAllDatabases(), is(primaryAndFederatedDbs));
+    assertThat(handler.getAllCatalogs(), is(primaryAndFederatedDbs));
   }
 
   @Test
@@ -376,7 +376,7 @@ public class PrefixBasedDatabaseMappingServiceTest {
         .thenReturn(Lists.newArrayList(FEDERATED_DB, "another_db_that_is_not_mapped"));
 
     PanopticOperationHandler handler = service.getPanopticOperationHandler();
-    assertThat(handler.getAllDatabases(), is(primaryAndFederatedDbs));
+    assertThat(handler.getAllCatalogs(), is(primaryAndFederatedDbs));
   }
 
   @Test
@@ -393,7 +393,7 @@ public class PrefixBasedDatabaseMappingServiceTest {
         .thenReturn(Lists.newArrayList(FEDERATED_DB, "another_db_that_is_not_mapped"));
 
     PanopticOperationHandler handler = service.getPanopticOperationHandler();
-    assertThat(handler.getAllDatabases(), is(Collections.emptyList()));
+    assertThat(handler.getAllCatalogs(), is(Collections.emptyList()));
   }
 
   @Test
@@ -407,7 +407,7 @@ public class PrefixBasedDatabaseMappingServiceTest {
     when(federatedDatabaseClient.get_databases(pattern)).thenReturn(Lists.newArrayList(FEDERATED_DB));
 
     PanopticOperationHandler handler = service.getPanopticOperationHandler();
-    List<String> allDatabases = handler.getAllDatabases(pattern);
+    List<String> allDatabases = handler.getAllCatalogs(pattern);
     assertThat(allDatabases.size(), is(2));
     assertThat(allDatabases, is(primaryAndFederatedDbs));
   }
@@ -430,7 +430,7 @@ public class PrefixBasedDatabaseMappingServiceTest {
         .thenReturn(Lists.newArrayList(FEDERATED_DB, "another_db_that_is_not_mapped_and_ends_with_db"));
 
     PanopticOperationHandler handler = service.getPanopticOperationHandler();
-    List<String> allDatabases = handler.getAllDatabases(pattern);
+    List<String> allDatabases = handler.getAllCatalogs(pattern);
     assertThat(allDatabases.size(), is(2));
     assertThat(allDatabases, is(primaryAndFederatedDbs));
   }
@@ -448,7 +448,7 @@ public class PrefixBasedDatabaseMappingServiceTest {
     when(primaryDatabaseClient.get_databases(pattern)).thenReturn(Collections.singletonList(PRIMARY_DB));
 
     PanopticOperationHandler handler = service.getPanopticOperationHandler();
-    List<String> allDatabases = handler.getAllDatabases(pattern);
+    List<String> allDatabases = handler.getAllCatalogs(pattern);
     assertThat(allDatabases.size(), is(0));
     assertThat(allDatabases, is(Collections.emptyList()));
   }

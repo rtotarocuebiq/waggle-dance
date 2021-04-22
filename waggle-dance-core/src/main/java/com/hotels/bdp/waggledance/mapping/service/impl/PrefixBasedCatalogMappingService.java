@@ -48,7 +48,6 @@ import com.hotels.bdp.waggledance.api.WaggleDanceException;
 import com.hotels.bdp.waggledance.api.model.AbstractMetaStore;
 import com.hotels.bdp.waggledance.api.model.FederationType;
 import com.hotels.bdp.waggledance.api.model.MappedTables;
-import com.hotels.bdp.waggledance.mapping.model.CatalogMapping;
 import com.hotels.bdp.waggledance.mapping.model.CatalogMappingImpl;
 import com.hotels.bdp.waggledance.mapping.model.MetaStoreMapping;
 import com.hotels.bdp.waggledance.mapping.model.QueryMapping;
@@ -119,14 +118,13 @@ public class PrefixBasedCatalogMappingService
       Map<String, AllowList> mappedTablesbyDbsAndCatalog = new HashMap<>();
       for (MappedTables mappedTable : mappedTables) {
         AllowList tableAllowList = new AllowList(mappedTable.getMappedTables());
-        Map<String, AllowList> catalogToCatalog = mappedTblByPrefix.get(metaStoreMapping.getCatalogPrefix()).get(mappedTable.getCatalog());
-        if(catalogToCatalog==null)
+        Map<String, AllowList> databaseToTables = mappedTblByPrefix.get(metaStoreMapping.getCatalogPrefix()).get(mappedTable.getCatalog());
+        if(databaseToTables==null)
         {
-          catalogToCatalog = mappedTblByPrefix.get(metaStoreMapping.getCatalogPrefix()).put(mappedTable.getCatalog(),new HashMap<>());
+          databaseToTables = mappedTblByPrefix.get(metaStoreMapping.getCatalogPrefix()).put(mappedTable.getCatalog(),new HashMap<>());
         }
-        catalogToCatalog.put(mappedTable.getCatalog(),tableAllowList);
+        databaseToTables.put(mappedTable.getCatalog(),tableAllowList);
       }
-      mappedDbByPrefix.put(metaStoreMapping.getCatalogPrefix(),mappedTablesbyDbsAndCatalog);
     }
   }
   private CatalogMapping createCatalogMapping(MetaStoreMapping metaStoreMapping) {
@@ -193,47 +191,47 @@ public class PrefixBasedCatalogMappingService
     return (metaStoreMapping != null) && metaStoreMapping.isAvailable();
   }
 
-  private boolean includeInResults(MetaStoreMapping metaStoreMapping, String prefixedDatabaseName) {
+  private boolean includeInResults(MetaStoreMapping metaStoreMapping, String prefixedCatalogName) {
     return includeInResults(metaStoreMapping)
-        && isDbAllowed(metaStoreMapping.getCatalogPrefix(),
-            metaStoreMapping.transformInboundCatalogName(prefixedDatabaseName));
+        && isCatalogAllowed(metaStoreMapping.getCatalogPrefix(),
+            metaStoreMapping.transformInboundCatalogName(prefixedCatalogName));
   }
 
   @Override
-  public CatalogMapping databaseMapping(@NotNull String databaseName) throws NoSuchObjectException {
+  public CatalogMapping catalogMapping(@NotNull String catalogName) throws NoSuchObjectException {
     // Find a Metastore with a prefix
     synchronized (mappingsByPrefix) {
       for (Entry<String, CatalogMapping> entry : mappingsByPrefix.entrySet()) {
         String metastorePrefix = entry.getKey();
-        if (Strings.isNotBlank(metastorePrefix) && databaseName.startsWith(metastorePrefix)) {
+        if (Strings.isNotBlank(metastorePrefix) && catalogName.startsWith(metastorePrefix)) {
           CatalogMapping databaseMapping = entry.getValue();
-          LOG.debug("Database Name `{}` maps to metastore with prefix `{}`", databaseName, metastorePrefix);
-          if (includeInResults(databaseMapping, databaseName)) {
+          LOG.debug("Database Name `{}` maps to metastore with prefix `{}`", catalogName, metastorePrefix);
+          if (includeInResults(databaseMapping, catalogName)) {
             return databaseMapping;
           }
         }
       }
     }
     // Find a Metastore that has an empty prefix
-    CatalogMapping databaseMapping = mappingsByPrefix.get(EMPTY_PREFIX);
-    if (databaseMapping != null) {
-      LOG.debug("Database Name `{}` maps to metastore with EMPTY_PREFIX", databaseName);
-      if (includeInResults(databaseMapping, databaseName)) {
-        return databaseMapping;
+    CatalogMapping catalogMapping = mappingsByPrefix.get(EMPTY_PREFIX);
+    if (catalogMapping != null) {
+      LOG.debug("Database Name `{}` maps to metastore with EMPTY_PREFIX", catalogName);
+      if (includeInResults(catalogMapping, catalogName)) {
+        return catalogMapping;
       }
     }
     if (primaryCatalogMapping != null) {
       // If none found we fall back to primary one
-      if (includeInResults(primaryCatalogMapping, databaseName)) {
-        LOG.debug("Database Name `{}` maps to 'primary' metastore", databaseName);
+      if (includeInResults(primaryCatalogMapping, catalogName)) {
+        LOG.debug("Database Name `{}` maps to 'primary' metastore", catalogName);
         return primaryCatalogMapping;
       }
 
-      throw new NoSuchObjectException("Primary metastore does not have database " + databaseName);
+      throw new NoSuchObjectException("Primary metastore does not have catalog " + catalogName);
     }
-    LOG.debug("Database Name `{}` not mapped", databaseName);
+    LOG.debug("Catalog Name `{}` not mapped", catalogName);
     throw new NoPrimaryMetastoreException(
-        "Waggle Dance error no database mapping available tried to map database '" + databaseName + "'");
+        "Waggle Dance error no database mapping available tried to map catalog '" + catalogName + "'");
   }
 
   @Override
@@ -257,6 +255,20 @@ public class PrefixBasedCatalogMappingService
       }
     }
     return allowedTables;
+  }
+
+  @Override
+  public void checkDatabaseAllowed(String catalog, String databaseName, CatalogMapping mapping)
+          throws NoSuchObjectException
+  {
+    //TODO:
+  }
+
+  @Override
+  public List<String> filterDatabases(String catalog, List<String> databaseName, CatalogMapping mapping)
+  {
+    //TODO:
+    return null;
   }
 
   private boolean isTableAllowed(String catalogPrefix,String catalogName, String database, String table) {
@@ -305,15 +317,15 @@ public class PrefixBasedCatalogMappingService
   private List<String> getMappedAllowedCatalogs(List<String> catalogs, CatalogMapping mapping) {
     List<String> mappedDatabases = new ArrayList<>();
     for (String catalog : catalogs) {
-      if (isDbAllowed(mapping.getCatalogPrefix(), catalog)) {
-        mappedDatabases.addAll(mapping.transformOutboundCatalogNameMultiple(database));
+      if (isDbAllowed(catalog, mapping.getCatalogPrefix(), catalog)) {
+        mappedDatabases.addAll(mapping.transformOutboundCatalogNameMultiple(catalog));
       }
     }
     return mappedDatabases;
   }
 
-  private boolean isDbAllowed(String databasePrefix, String database) {
-    AllowList allowList = mappedDbByPrefix.get(databasePrefix);
+  private boolean isDbAllowed(String databasePrefix,String catalog, String database) {
+    AllowList allowList = mappedDbByPrefix.get(databasePrefix).get(catalog);
     if (allowList == null) {
       // Accept everything
       return true;
@@ -321,10 +333,19 @@ public class PrefixBasedCatalogMappingService
     return allowList.contains(database);
   }
 
-  private boolean databaseAndTableAllowed(String database, String table, CatalogMapping mapping) {
+  private boolean isCatalogAllowed(String databasePrefix,String catalog) {
+    AllowList allowList = mappedCatalogByPrefix.get(databasePrefix);
+    if (allowList == null) {
+      // Accept everything
+      return true;
+    }
+    return allowList.contains(catalog);
+  }
+
+  private boolean databaseAndTableAllowed(String catalog, String database, String table, CatalogMapping mapping) {
     String dbPrefix = mapping.getCatalogPrefix();
-    boolean databaseAllowed = isDbAllowed(dbPrefix, database);
-    boolean tableAllowed = isTableAllowed(dbPrefix, database, table);
+    boolean databaseAllowed = isDbAllowed(catalog, dbPrefix, database);
+    boolean tableAllowed = isTableAllowed(catalog, dbPrefix, database, table);
     return databaseAllowed && tableAllowed;
   }
 
@@ -333,35 +354,35 @@ public class PrefixBasedCatalogMappingService
     return new PanopticOperationHandler() {
 
       @Override
-      public List<TableMeta> getTableMeta(String db_patterns, String tbl_patterns, List<String> tbl_types) {
+      public List<TableMeta> getTableMeta(String catalog, String db_patterns, String tbl_patterns, List<String> tbl_types) {
         Map<CatalogMapping, String> databaseMappingsForPattern = databaseMappingsByDbPattern(db_patterns);
 
-        BiFunction<TableMeta, CatalogMapping, Boolean> filter = (tableMeta, mapping) -> databaseAndTableAllowed(
+        BiFunction<TableMeta, CatalogMapping, Boolean> filter = (tableMeta, mapping) -> databaseAndTableAllowed(catalog,
             tableMeta.getDbName(), tableMeta.getTableName(), mapping);
 
-        return super.getTableMeta(tbl_patterns, tbl_types, databaseMappingsForPattern, filter);
+        return super.getTableMeta(catalog,tbl_patterns, tbl_types, databaseMappingsForPattern, filter);
       }
 
       @Override
-      public List<String> getAllDatabases(String databasePattern) {
-        Map<CatalogMapping, String> databaseMappingsForPattern = databaseMappingsByDbPattern(databasePattern);
+      public List<String> getAllCatalogs(String catalogPattern) {
+        Map<CatalogMapping, String> databaseMappingsForPattern = databaseMappingsByDbPattern(catalogPattern);
 
         BiFunction<String, CatalogMapping, Boolean> filter = (database, mapping) -> isDbAllowed(
-            mapping.getCatalogPrefix(), database);
+                mapping.getCatalogPrefix(),catalogPattern, database);
 
-        return super.getAllDatabases(databaseMappingsForPattern, filter);
+        return super.getAllCatalogs(databaseMappingsForPattern, filter);
       }
 
       @Override
-      public List<String> getAllDatabases() {
-        List<CatalogMapping> databaseMappings = getCatalogMappings();
+      public List<String> getAllCatalogs() {
+        List<CatalogMapping> catalogMappings = getCatalogMappings();
         List<GetAllDatabasesRequest> allRequests = new ArrayList<>();
 
         BiFunction<List<String>, CatalogMapping, List<String>> filter = (
-            databases,
-            mapping) -> getMappedAllowedDatabases(databases, mapping);
+            catalogs,
+            mapping) -> getMappedAllowedCatalogs(catalogs, mapping);
 
-        for (CatalogMapping mapping : databaseMappings) {
+        for (CatalogMapping mapping : catalogMappings) {
           GetAllDatabasesRequest allDatabasesRequest = new GetAllDatabasesRequest(mapping, filter);
           allRequests.add(allDatabasesRequest);
         }

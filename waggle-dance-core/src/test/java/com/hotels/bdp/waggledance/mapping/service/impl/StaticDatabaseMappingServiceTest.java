@@ -423,7 +423,7 @@ public class StaticDatabaseMappingServiceTest {
   public void panopticOperationsHandlerGetAllDatabases() {
     PanopticOperationHandler handler = service.getPanopticOperationHandler();
     List<String> allDatabases = Lists.newArrayList(PRIMARY_DB, FEDERATED_DB);
-    assertThat(handler.getAllDatabases(), is(allDatabases));
+    assertThat(handler.getAllCatalogs(), is(allDatabases));
   }
 
   @Test
@@ -434,7 +434,7 @@ public class StaticDatabaseMappingServiceTest {
         Arrays.asList(primaryMetastore, federatedMetastore), queryMapping);
 
     PanopticOperationHandler handler = service.getPanopticOperationHandler();
-    assertThat(handler.getAllDatabases(), is(Collections.emptyList()));
+    assertThat(handler.getAllCatalogs(), is(Collections.emptyList()));
   }
 
   @Test
@@ -445,8 +445,8 @@ public class StaticDatabaseMappingServiceTest {
         Arrays.asList(primaryMetastore, federatedMetastore), queryMapping);
 
     PanopticOperationHandler handler = service.getPanopticOperationHandler();
-    assertThat(handler.getAllDatabases().size(), is(2));
-    assertThat(handler.getAllDatabases(), is(Arrays.asList(PRIMARY_DB, FEDERATED_DB)));
+    assertThat(handler.getAllCatalogs().size(), is(2));
+    assertThat(handler.getAllCatalogs(), is(Arrays.asList(PRIMARY_DB, FEDERATED_DB)));
   }
 
   @Test
@@ -458,7 +458,7 @@ public class StaticDatabaseMappingServiceTest {
 
     PanopticOperationHandler handler = service.getPanopticOperationHandler();
     List<String> allDatabases = Lists.newArrayList(PRIMARY_DB, FEDERATED_DB);
-    assertThat(handler.getAllDatabases(pattern), is(allDatabases));
+    assertThat(handler.getAllCatalogs(pattern), is(allDatabases));
   }
 
   @Test
@@ -476,7 +476,7 @@ public class StaticDatabaseMappingServiceTest {
         .thenReturn(Lists.newArrayList(FEDERATED_DB, "another_db_that_is_not_mapped"));
 
     PanopticOperationHandler handler = service.getPanopticOperationHandler();
-    assertThat(handler.getAllDatabases(pattern), is(Collections.emptyList()));
+    assertThat(handler.getAllCatalogs(pattern), is(Collections.emptyList()));
   }
 
   @Test
@@ -494,7 +494,7 @@ public class StaticDatabaseMappingServiceTest {
         .thenReturn(Lists.newArrayList(FEDERATED_DB, "another_db_that_is_not_mapped"));
 
     PanopticOperationHandler handler = service.getPanopticOperationHandler();
-    List<String> allDatabasesByPattern = handler.getAllDatabases(pattern);
+    List<String> allDatabasesByPattern = handler.getAllCatalogs(pattern);
     assertThat(allDatabasesByPattern.size(), is(2));
     assertThat(allDatabasesByPattern, is(Arrays.asList(PRIMARY_DB, FEDERATED_DB)));
   }

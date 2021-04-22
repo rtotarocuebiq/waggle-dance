@@ -22,6 +22,7 @@ import static com.hotels.bdp.waggledance.api.model.FederationType.PRIMARY;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -35,6 +36,7 @@ import java.util.function.BiFunction;
 
 import javax.validation.constraints.NotNull;
 
+import com.hotels.bdp.waggledance.api.model.MappedDbs;
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.hive.metastore.api.NoSuchObjectException;
 import org.apache.hadoop.hive.metastore.api.TableMeta;
@@ -72,12 +74,14 @@ public class StaticDatabaseMappingService implements MappingEventListener {
 
   private static final String PRIMARY_KEY = "";
   private final MetaStoreMappingFactory metaStoreMappingFactory;
-  private final LoadingCache<String, List<String>> primaryDatabasesCache;
+  private final LoadingCache<String, List<String>> primaryCatalogsCache;
   private final Map<String, CatalogMapping> mappingsByMetaStoreName;
-  private final Map<String, CatalogMapping> mappingsByDatabaseName;
-  private final Map<String, List<String>> databaseMappingToDatabaseList;
-  private final Map<String, AllowList> databaseToTableAllowList;
-  private CatalogMapping primaryDatabaseMapping;
+  private final Map<String, CatalogMapping> mappingsByCatalogName;
+  private final Map<String, List<String>> catalogMappingToCatalogAllowList;
+  private final Map<String, Map<String,AllowList>>catalogToDatabaseAllowList;
+  private final Map<String, Map<String,Map<String,AllowList>>> databaseToTableAllowList;
+
+  private CatalogMapping primaryCatalogMapping;
   private final QueryMapping queryMapping;
 
   public StaticDatabaseMappingService(
@@ -86,7 +90,7 @@ public class StaticDatabaseMappingService implements MappingEventListener {
       QueryMapping queryMapping) {
     this.metaStoreMappingFactory = metaStoreMappingFactory;
     this.queryMapping = queryMapping;
-    primaryDatabasesCache = CacheBuilder
+    primaryCatalogsCache = CacheBuilder
         .newBuilder()
         .expireAfterAccess(1, TimeUnit.MINUTES)
         .maximumSize(1)
@@ -94,8 +98,8 @@ public class StaticDatabaseMappingService implements MappingEventListener {
 
           @Override
           public List<String> load(String key) throws Exception {
-            if (primaryDatabaseMapping != null) {
-              return primaryDatabaseMapping.getClient().get_all_databases();
+            if (primaryCatalogMapping != null) {
+              return primaryCatalogMapping.getClient().get_all_databases();
             } else {
               return Lists.newArrayList();
             }
@@ -103,8 +107,10 @@ public class StaticDatabaseMappingService implements MappingEventListener {
         });
 
     mappingsByMetaStoreName = Collections.synchronizedMap(new LinkedHashMap<>());
-    mappingsByDatabaseName = Collections.synchronizedMap(new LinkedHashMap<>());
-    databaseMappingToDatabaseList = new ConcurrentHashMap<>();
+    mappingsByCatalogName = Collections.synchronizedMap(new LinkedHashMap<>());
+
+    catalogMappingToCatalogAllowList = Collections.synchronizedMap(new LinkedHashMap<>());
+    catalogToDatabaseAllowList = new ConcurrentHashMap<>();
     databaseToTableAllowList = new ConcurrentHashMap<>();
     for (AbstractMetaStore federatedMetaStore : initialMetastores) {
       add(federatedMetaStore);
@@ -112,66 +118,82 @@ public class StaticDatabaseMappingService implements MappingEventListener {
   }
 
   private void add(AbstractMetaStore metaStore) {
+
+
     MetaStoreMapping metaStoreMapping = metaStoreMappingFactory.newInstance(metaStore);
 
-    List<String> mappableDatabases = Collections.emptyList();
     if (metaStoreMapping.isAvailable()) {
       try {
-        List<String> allDatabases = metaStoreMapping.getClient().get_all_databases();
-        AllowList allowedDatabases = new AllowList(metaStore.getMappedDatabases());
-        mappableDatabases = applyAllowList(allDatabases, allowedDatabases);
-      } catch (TException e) {
+        List<String> mappedCatalogs = metaStoreMapping.getClient().get_catalogs().getNames();
+
+//        catalogMappingToCatalogAllowList.put(metaStore.getCatalogPrefix(),new AllowList(mappedCatalogs));
+        List<MappedDbs> mappedDatabases = metaStore.getMappedDatabases();
+        if(mappedCatalogs != null) {
+          Map<String, AllowList> mappedDbByCatalog = new HashMap<>();
+          for (MappedDbs mappedDb : mappedDatabases) {
+            AllowList catalogAllowList = new AllowList(mappedDb.getMappedDBs());
+            mappedDbByCatalog.put(mappedDb.getCatalog(), catalogAllowList);
+          }
+          catalogToDatabaseAllowList.put(metaStoreMapping.getCatalogPrefix(),mappedDbByCatalog);
+        }
+
+        CatalogMapping catalogMapping = createCatalogMapping(metaStoreMapping);
+        List<String> trasformedCatalogs = mappedCatalogs
+                .stream()
+                .flatMap(n -> catalogMapping.transformOutboundCatalogNameMultiple(n).stream())
+                .collect(toList());
+        validateMappableCatalogs(trasformedCatalogs, metaStore);
+
+        if (metaStore.getFederationType() == PRIMARY) {
+          validatePrimaryMetastoreCatalogs(trasformedCatalogs);
+          primaryCatalogMapping = catalogMapping;
+          primaryCatalogsCache.invalidateAll();
+        } else {
+          validateFederatedMetastoreCatalogs(trasformedCatalogs, metaStoreMapping);
+        }
+
+        mappingsByMetaStoreName.put(metaStoreMapping.getMetastoreMappingName(), catalogMapping);
+        addDatabaseMappings(trasformedCatalogs, catalogMapping);
+        catalogMappingToCatalogAllowList.put(catalogMapping.getMetastoreMappingName(), trasformedCatalogs);
+        addTableMappings(metaStore);
+      }catch (TException e) {
         LOG.error("Could not get databases for metastore {}", metaStore.getRemoteMetaStoreUris(), e);
       }
-    }
-    CatalogMapping databaseMapping = createDatabaseMapping(metaStoreMapping);
-    mappableDatabases = mappableDatabases
-        .stream()
-        .flatMap(n -> databaseMapping.transformOutboundCatalogNameMultiple(n).stream())
-        .collect(toList());
-    validateMappableDatabases(mappableDatabases, metaStore);
 
-    if (metaStore.getFederationType() == PRIMARY) {
-      validatePrimaryMetastoreDatabases(mappableDatabases);
-      primaryDatabaseMapping = databaseMapping;
-      primaryDatabasesCache.invalidateAll();
-    } else {
-      validateFederatedMetastoreDatabases(mappableDatabases, metaStoreMapping);
-    }
 
-    mappingsByMetaStoreName.put(metaStoreMapping.getMetastoreMappingName(), databaseMapping);
-    addDatabaseMappings(mappableDatabases, databaseMapping);
-    databaseMappingToDatabaseList.put(databaseMapping.getMetastoreMappingName(), mappableDatabases);
-    addTableMappings(metaStore);
+
+
+
+    }
   }
 
-  private void validateMappableDatabases(List<String> mappableDatabases, AbstractMetaStore metaStore) {
-    int uniqueMappableDatabasesSize = new HashSet<>(mappableDatabases).size();
-    if (uniqueMappableDatabasesSize != mappableDatabases.size()) {
+  private void validateMappableCatalogs(List<String> catalogs, AbstractMetaStore metaStore) {
+    int uniqueMappableDatabasesSize = new HashSet<>(catalogs).size();
+    if (uniqueMappableDatabasesSize != catalogs.size()) {
       throw new WaggleDanceException(
           "Database clash, found duplicate database names after applying all the mappings. Check the configuration for metastore '"
               + metaStore.getName()
               + "', mappableDatabases are: '"
-              + mappableDatabases.toString());
+              + catalogs.toString());
     }
   }
 
-  private void validatePrimaryMetastoreDatabases(List<String> databases) {
+  private void validatePrimaryMetastoreCatalogs(List<String> databases) {
     for (String database : databases) {
-      if (mappingsByDatabaseName.containsKey(database)) {
+      if (mappingsByCatalogName.containsKey(database)) {
         throw new WaggleDanceException("Database clash, found '"
             + database
             + "' in primary that was already mapped to a federated metastore '"
-            + mappingsByDatabaseName.get(database).getMetastoreMappingName()
+            + mappingsByCatalogName.get(database).getMetastoreMappingName()
             + "', please remove the database from the federated metastore list it can't be"
             + " accessed via Waggle Dance");
       }
     }
   }
 
-  private void validateFederatedMetastoreDatabases(List<String> mappableDatabases, MetaStoreMapping metaStoreMapping) {
+  private void validateFederatedMetastoreCatalogs(List<String> mappableDatabases, MetaStoreMapping metaStoreMapping) {
     try {
-      Set<String> allPrimaryDatabases = Sets.newHashSet(primaryDatabasesCache.get(PRIMARY_KEY));
+      Set<String> allPrimaryDatabases = Sets.newHashSet(primaryCatalogsCache.get(PRIMARY_KEY));
       for (String database : mappableDatabases) {
         if (allPrimaryDatabases.contains(database.toLowerCase(Locale.ROOT))) {
           throw new WaggleDanceException("Database clash, found '"
@@ -181,7 +203,7 @@ public class StaticDatabaseMappingService implements MappingEventListener {
               + "' already present in the primary database, please remove the database from the list it can't be"
               + " accessed via Waggle Dance");
         }
-        if (mappingsByDatabaseName.containsKey(database.toLowerCase(Locale.ROOT))) {
+        if (mappingsByCatalogName.containsKey(database.toLowerCase(Locale.ROOT))) {
           throw new WaggleDanceException("Database clash, found '"
               + database
               + "' to be mapped for the federated metastore '"
@@ -208,36 +230,43 @@ public class StaticDatabaseMappingService implements MappingEventListener {
 
   private void addDatabaseMappings(List<String> databases, CatalogMapping databaseMapping) {
     for (String databaseName : databases) {
-      mappingsByDatabaseName.put(databaseName, databaseMapping);
+      mappingsByCatalogName.put(databaseName, databaseMapping);
     }
   }
 
   private void addTableMappings(AbstractMetaStore metaStore) {
+
     List<MappedTables> mappedTables = metaStore.getMappedTables();
-    if (mappedTables != null) {
-      for (MappedTables mapping : mappedTables) {
-        AllowList tableAllowList = new AllowList(mapping.getMappedTables());
-        databaseToTableAllowList.put(mapping.getDatabase(), tableAllowList);
+    if(mappedTables != null) {
+      Map<String, AllowList> mappedTablesbyDbsAndCatalog = new HashMap<>();
+      for (MappedTables mappedTable : mappedTables) {
+        AllowList tableAllowList = new AllowList(mappedTable.getMappedTables());
+        Map<String, AllowList> databaseToTables = databaseToTableAllowList.get(metaStore.getCatalogPrefix()).get(mappedTable.getCatalog());
+        if(databaseToTables==null)
+        {
+          databaseToTables = databaseToTableAllowList.get(metaStore.getCatalogPrefix()).put(mappedTable.getCatalog(),new HashMap<>());
+        }
+        databaseToTables.put(mappedTable.getCatalog(),tableAllowList);
       }
     }
   }
 
-  private CatalogMapping createDatabaseMapping(MetaStoreMapping metaStoreMapping) {
+  private CatalogMapping createCatalogMapping(MetaStoreMapping metaStoreMapping) {
     return new CatalogMappingImpl(metaStoreMapping, queryMapping);
   }
 
   private void remove(AbstractMetaStore metaStore) {
     if (metaStore.getFederationType() == PRIMARY) {
-      primaryDatabaseMapping = null;
-      primaryDatabasesCache.invalidateAll();
+      primaryCatalogMapping = null;
+      primaryCatalogsCache.invalidateAll();
     }
 
     CatalogMapping removed = mappingsByMetaStoreName.remove(metaStore.getName());
     String mappingName = removed.getMetastoreMappingName();
-    List<String> databasesToRemove = databaseMappingToDatabaseList.get(mappingName);
-    databaseMappingToDatabaseList.remove(mappingName);
-    for (String database : databasesToRemove) {
-      mappingsByDatabaseName.remove(database);
+    List<String> catalogToRemove = catalogMappingToCatalogAllowList.get(mappingName);
+    List<String> catalogsToRemove = catalogMappingToCatalogAllowList.remove(mappingName);
+    for (String catalog : catalogsToRemove) {
+      mappingsByCatalogName.remove(catalog);
     }
 
     IOUtils.closeQuietly(removed);
@@ -252,7 +281,7 @@ public class StaticDatabaseMappingService implements MappingEventListener {
         throw new WaggleDanceException(
             "Metastore with name '" + metaStore.getName() + "' already registered, remove old one first or update");
       }
-      if ((metaStore.getFederationType() == FederationType.PRIMARY) && (primaryDatabaseMapping != null)) {
+      if ((metaStore.getFederationType() == FederationType.PRIMARY) && (primaryCatalogMapping != null)) {
         throw new WaggleDanceException("Primary metastore already registered, remove old one first or update");
       }
       add(metaStore);
@@ -279,11 +308,11 @@ public class StaticDatabaseMappingService implements MappingEventListener {
   }
 
   @Override
-  public CatalogMapping primaryDatabaseMapping() {
-    if (primaryDatabaseMapping == null) {
+  public CatalogMapping primaryCatalogMapping() {
+    if (primaryCatalogMapping == null) {
       throw new NoPrimaryMetastoreException("Waggle Dance error no primary database mapping available");
     }
-    return primaryDatabaseMapping;
+    return primaryCatalogMapping;
   }
 
   private boolean includeInResults(MetaStoreMapping metaStoreMapping) {
@@ -291,8 +320,8 @@ public class StaticDatabaseMappingService implements MappingEventListener {
   }
 
   @Override
-  public CatalogMapping databaseMapping(@NotNull String databaseName) throws NoSuchObjectException {
-    CatalogMapping databaseMapping = mappingsByDatabaseName.get(databaseName.toLowerCase(Locale.ROOT));
+  public CatalogMapping catalogMapping(@NotNull String databaseName) throws NoSuchObjectException {
+    CatalogMapping databaseMapping = mappingsByCatalogName.get(databaseName.toLowerCase(Locale.ROOT));
     if (databaseMapping != null) {
       LOG
           .debug("Database Name `{}` maps to metastore with name '{}'", databaseName,
@@ -308,7 +337,7 @@ public class StaticDatabaseMappingService implements MappingEventListener {
   @Override
   public void checkTableAllowed(String catalog, String databaseName, String tableName,
       CatalogMapping mapping) throws NoSuchObjectException {
-    if (!isTableAllowed(databaseName, tableName)) {
+    if (!isTableAllowed(mapping.getMetastoreMappingName(),catalog, databaseName, tableName)) {
       throw new NoSuchObjectException(String.format("%s.%s table not found in any mappings", databaseName, tableName));
     }
   }
@@ -318,14 +347,28 @@ public class StaticDatabaseMappingService implements MappingEventListener {
     List<String> allowedTables = new ArrayList<>();
     String db = databaseName.toLowerCase(Locale.ROOT);
     for (String table: tableNames)
-      if (isTableAllowed(db, table)) {
+      if (isTableAllowed(mapping.getMetastoreMappingName(),catalog, db, table)) {
         allowedTables.add(table);
       }
     return allowedTables;
   }
 
-  private boolean isTableAllowed(String database, String table) {
-    AllowList tblAllowList = databaseToTableAllowList.get(database);
+  @Override
+  public void checkDatabaseAllowed(String catalog, String databaseName, CatalogMapping mapping)
+          throws NoSuchObjectException
+  {
+    //TODO
+  }
+
+  @Override
+  public List<String> filterDatabases(String catalog, List<String> databaseName, CatalogMapping mapping)
+  {
+    //TODO
+    return null;
+  }
+
+  private boolean isTableAllowed(String mapping, String catalog, String database, String table) {
+    AllowList tblAllowList = databaseToTableAllowList.get(mapping).get(catalog).get(database);
     if (tblAllowList == null) {
       // Accept everything
       return true;
@@ -334,7 +377,7 @@ public class StaticDatabaseMappingService implements MappingEventListener {
   }
 
   @Override
-  public List<CatalogMapping> getDatabaseMappings() {
+  public List<CatalogMapping> getCatalogMappings() {
     Builder<CatalogMapping> builder = ImmutableList.builder();
     synchronized (mappingsByMetaStoreName) {
       for (CatalogMapping databaseMapping : mappingsByMetaStoreName.values()) {
@@ -346,11 +389,11 @@ public class StaticDatabaseMappingService implements MappingEventListener {
     return builder.build();
   }
 
-  private boolean databaseAndTableAllowed(String database, String table, CatalogMapping mapping) {
-    boolean isPrimary = mapping.equals(primaryDatabaseMapping);
-    boolean isMapped = mappingsByDatabaseName.containsKey(database);
+  private boolean databaseAndTableAllowed(String catalog, String database, String table, CatalogMapping mapping) {
+    boolean isPrimary = mapping.equals(primaryCatalogMapping);
+    boolean isMapped = mappingsByCatalogName.containsKey(database);
     boolean databaseAllowed = isPrimary || isMapped;
-    boolean tableAllowed = isTableAllowed(database, table);
+    boolean tableAllowed = isTableAllowed(mapping.getMetastoreMappingName(),catalog,database, table);
     return databaseAllowed && tableAllowed;
   }
 
@@ -359,34 +402,34 @@ public class StaticDatabaseMappingService implements MappingEventListener {
     return new PanopticOperationHandler() {
 
       @Override
-      public List<TableMeta> getTableMeta(String db_patterns, String tbl_patterns, List<String> tbl_types) {
+      public List<TableMeta> getTableMeta(String catalog, String db_patterns, String tbl_patterns, List<String> tbl_types) {
 
         BiFunction<TableMeta, CatalogMapping, Boolean> filter = (tableMeta, mapping) ->
-            databaseAndTableAllowed(tableMeta.getDbName(), tableMeta.getTableName(), mapping);
+            databaseAndTableAllowed(tableMeta.getCatName(),tableMeta.getDbName(), tableMeta.getTableName(), mapping);
 
         Map<CatalogMapping, String> mappingsForPattern = new LinkedHashMap<>();
-        for (CatalogMapping mapping : getDatabaseMappings()) {
+        for (CatalogMapping mapping : getCatalogMappings()) {
           mappingsForPattern.put(mapping, db_patterns);
         }
-        return super.getTableMeta(tbl_patterns, tbl_types, mappingsForPattern, filter);
+        return super.getTableMeta(db_patterns, tbl_patterns, tbl_types, mappingsForPattern, filter);
       }
 
       @Override
-      public List<String> getAllDatabases(String pattern) {
-        BiFunction<String, CatalogMapping, Boolean> filter = (database, mapping) -> mappingsByDatabaseName
+      public List<String> getAllCatalogs(String pattern) {
+        BiFunction<String, CatalogMapping, Boolean> filter = (database, mapping) -> mappingsByCatalogName
             .containsKey(database);
 
         Map<CatalogMapping, String> mappingsForPattern = new LinkedHashMap<>();
-        for (CatalogMapping mapping : getDatabaseMappings()) {
+        for (CatalogMapping mapping : getCatalogMappings()) {
           mappingsForPattern.put(mapping, pattern);
         }
 
-        return super.getAllDatabases(mappingsForPattern, filter);
+        return super.getAllCatalogs(mappingsForPattern, filter);
       }
 
       @Override
-      public List<String> getAllDatabases() {
-        return new ArrayList<>(mappingsByDatabaseName.keySet());
+      public List<String> getAllCatalogs() {
+        return new ArrayList<>(mappingsByCatalogName.keySet());
       }
 
       @Override
