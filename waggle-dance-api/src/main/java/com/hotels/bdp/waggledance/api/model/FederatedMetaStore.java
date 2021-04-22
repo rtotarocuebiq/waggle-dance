@@ -50,8 +50,8 @@ public class FederatedMetaStore extends AbstractMetaStore {
   }
 
   @Override
-  public String getDatabasePrefix() {
-    String prefix = super.getDatabasePrefix();
+  public String getCatalogPrefix() {
+    String prefix = super.getCatalogPrefix();
     if (prefix == null) {
       prefix = getName() + "_";
     }

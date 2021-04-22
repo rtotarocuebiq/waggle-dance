@@ -48,8 +48,8 @@ import com.hotels.bdp.waggledance.api.WaggleDanceException;
 import com.hotels.bdp.waggledance.api.model.AbstractMetaStore;
 import com.hotels.bdp.waggledance.api.model.FederationType;
 import com.hotels.bdp.waggledance.api.model.MappedTables;
-import com.hotels.bdp.waggledance.mapping.model.DatabaseMapping;
-import com.hotels.bdp.waggledance.mapping.model.DatabaseMappingImpl;
+import com.hotels.bdp.waggledance.mapping.model.CatalogMapping;
+import com.hotels.bdp.waggledance.mapping.model.CatalogMappingImpl;
 import com.hotels.bdp.waggledance.mapping.model.MetaStoreMapping;
 import com.hotels.bdp.waggledance.mapping.model.QueryMapping;
 import com.hotels.bdp.waggledance.mapping.service.GrammarUtils;
@@ -62,21 +62,22 @@ import com.hotels.bdp.waggledance.mapping.service.requests.GetAllDatabasesReques
 import com.hotels.bdp.waggledance.server.NoPrimaryMetastoreException;
 import com.hotels.bdp.waggledance.util.AllowList;
 
-public class PrefixBasedDatabaseMappingService implements MappingEventListener {
+public class PrefixBasedCatalogMappingService
+        implements MappingEventListener {
 
-  private static final Logger LOG = LoggerFactory.getLogger(PrefixBasedDatabaseMappingService.class);
+  private static final Logger LOG = LoggerFactory.getLogger(PrefixBasedCatalogMappingService.class);
 
   private static final String EMPTY_PREFIX = "";
   private final MetaStoreMappingFactory metaStoreMappingFactory;
   private final QueryMapping queryMapping;
-  private final Map<String, DatabaseMapping> mappingsByPrefix;
+  private final Map<String, CatalogMapping> mappingsByPrefix;
   private final Map<String, AllowList> mappedCatalogByPrefix;
   private final Map<String, Map<String, AllowList>> mappedDbByPrefix;
   private final Map<String, Map <String,Map<String, AllowList>>> mappedTblByPrefix;
 
-  private DatabaseMapping primaryDatabaseMapping;
+  private CatalogMapping primaryCatalogMapping;
 
-  public PrefixBasedDatabaseMappingService(
+  public PrefixBasedCatalogMappingService(
       MetaStoreMappingFactory metaStoreMappingFactory,
       List<AbstractMetaStore> initialMetastores,
       QueryMapping queryMapping) {
@@ -103,10 +104,10 @@ public class PrefixBasedDatabaseMappingService implements MappingEventListener {
     List<String> mappedCatalogs = metaStore.getMappedCatalogs();
     mappedCatalogByPrefix.put(metaStoreMapping.getCatalogPrefix(), new AllowList(mappedCatalogs));
 
-    List<MappedDbs> mappedCatalogs = metaStore.getMappedCatalogs();
+    List<MappedDbs> mappedDatabases = metaStore.getMappedDatabases();
     if(mappedCatalogs != null) {
       Map<String, AllowList> mappedDbByCatalog = new HashMap<>();
-      for (MappedDbs mappedDb : mappedCatalogs) {
+      for (MappedDbs mappedDb : mappedDatabases) {
         AllowList catalogAllowList = new AllowList(mappedDb.getMappedDBs());
         mappedDbByCatalog.put(mappedDb.getCatalog(), catalogAllowList);
       }
@@ -128,15 +129,15 @@ public class PrefixBasedDatabaseMappingService implements MappingEventListener {
       mappedDbByPrefix.put(metaStoreMapping.getCatalogPrefix(),mappedTablesbyDbsAndCatalog);
     }
   }
-  private DatabaseMapping createDatabaseMapping(MetaStoreMapping metaStoreMapping) {
-    return new DatabaseMappingImpl(metaStoreMapping, queryMapping);
+  private CatalogMapping createCatalogMapping(MetaStoreMapping metaStoreMapping) {
+    return new CatalogMappingImpl(metaStoreMapping, queryMapping);
   }
 
   private void remove(AbstractMetaStore metaStore) {
     if (metaStore.getFederationType() == PRIMARY) {
-      primaryDatabaseMapping = null;
+      primaryCatalogMapping = null;
     }
-    DatabaseMapping removed = mappingsByPrefix.remove(metaStoreMappingFactory.prefixNameFor(metaStore));
+    CatalogMapping removed = mappingsByPrefix.remove(metaStoreMappingFactory.prefixNameFor(metaStore));
     IOUtils.closeQuietly(removed);
   }
 
@@ -145,9 +146,9 @@ public class PrefixBasedDatabaseMappingService implements MappingEventListener {
     // Synchronizing on the mappingsByPrefix map field so we ensure the implemented FederationEventListener methods are
     // processes sequentially
     synchronized (mappingsByPrefix) {
-      if (mappingsByPrefix.containsKey(metaStore.getDatabasePrefix())) {
+      if (mappingsByPrefix.containsKey(metaStore.getCatalogPrefix())) {
         throw new WaggleDanceException("MetaStore with prefix '"
-            + metaStore.getDatabasePrefix()
+            + metaStore.getCatalogPrefix()
             + "' already registered, remove old one first or update");
       }
       if (isPrimaryMetaStoreRegistered(metaStore)) {
@@ -158,7 +159,7 @@ public class PrefixBasedDatabaseMappingService implements MappingEventListener {
   }
 
   private boolean isPrimaryMetaStoreRegistered(AbstractMetaStore metaStore) {
-    return (metaStore.getFederationType() == FederationType.PRIMARY) && (primaryDatabaseMapping != null);
+    return (metaStore.getFederationType() == FederationType.PRIMARY) && (primaryCatalogMapping != null);
   }
 
   @Override
@@ -181,11 +182,11 @@ public class PrefixBasedDatabaseMappingService implements MappingEventListener {
   }
 
   @Override
-  public DatabaseMapping primaryDatabaseMapping() {
-    if (primaryDatabaseMapping == null) {
+  public CatalogMapping primaryCatalogMapping() {
+    if (primaryCatalogMapping == null) {
       throw new NoPrimaryMetastoreException("Waggle Dance error no primary database mapping available");
     }
-    return primaryDatabaseMapping;
+    return primaryCatalogMapping;
   }
 
   private boolean includeInResults(MetaStoreMapping metaStoreMapping) {
@@ -194,18 +195,18 @@ public class PrefixBasedDatabaseMappingService implements MappingEventListener {
 
   private boolean includeInResults(MetaStoreMapping metaStoreMapping, String prefixedDatabaseName) {
     return includeInResults(metaStoreMapping)
-        && isDbAllowed(metaStoreMapping.getDatabasePrefix(),
-            metaStoreMapping.transformInboundDatabaseName(prefixedDatabaseName));
+        && isDbAllowed(metaStoreMapping.getCatalogPrefix(),
+            metaStoreMapping.transformInboundCatalogName(prefixedDatabaseName));
   }
 
   @Override
-  public DatabaseMapping databaseMapping(@NotNull String databaseName) throws NoSuchObjectException {
+  public CatalogMapping databaseMapping(@NotNull String databaseName) throws NoSuchObjectException {
     // Find a Metastore with a prefix
     synchronized (mappingsByPrefix) {
-      for (Entry<String, DatabaseMapping> entry : mappingsByPrefix.entrySet()) {
+      for (Entry<String, CatalogMapping> entry : mappingsByPrefix.entrySet()) {
         String metastorePrefix = entry.getKey();
         if (Strings.isNotBlank(metastorePrefix) && databaseName.startsWith(metastorePrefix)) {
-          DatabaseMapping databaseMapping = entry.getValue();
+          CatalogMapping databaseMapping = entry.getValue();
           LOG.debug("Database Name `{}` maps to metastore with prefix `{}`", databaseName, metastorePrefix);
           if (includeInResults(databaseMapping, databaseName)) {
             return databaseMapping;
@@ -214,18 +215,18 @@ public class PrefixBasedDatabaseMappingService implements MappingEventListener {
       }
     }
     // Find a Metastore that has an empty prefix
-    DatabaseMapping databaseMapping = mappingsByPrefix.get(EMPTY_PREFIX);
+    CatalogMapping databaseMapping = mappingsByPrefix.get(EMPTY_PREFIX);
     if (databaseMapping != null) {
       LOG.debug("Database Name `{}` maps to metastore with EMPTY_PREFIX", databaseName);
       if (includeInResults(databaseMapping, databaseName)) {
         return databaseMapping;
       }
     }
-    if (primaryDatabaseMapping != null) {
+    if (primaryCatalogMapping != null) {
       // If none found we fall back to primary one
-      if (includeInResults(primaryDatabaseMapping, databaseName)) {
+      if (includeInResults(primaryCatalogMapping, databaseName)) {
         LOG.debug("Database Name `{}` maps to 'primary' metastore", databaseName);
-        return primaryDatabaseMapping;
+        return primaryCatalogMapping;
       }
 
       throw new NoSuchObjectException("Primary metastore does not have database " + databaseName);
@@ -236,30 +237,30 @@ public class PrefixBasedDatabaseMappingService implements MappingEventListener {
   }
 
   @Override
-  public void checkTableAllowed(String databaseName, String tableName, DatabaseMapping mapping)
+  public void checkTableAllowed(String catalogName, String databaseName, String tableName, CatalogMapping mapping)
     throws NoSuchObjectException {
-    String databasePrefix = mapping.getDatabasePrefix();
-    String transformedDbName = mapping.transformInboundDatabaseName(databaseName);
-    if (!isTableAllowed(databasePrefix, transformedDbName, tableName)) {
+    String databasePrefix = mapping.getCatalogPrefix();
+    String transformedCatalogName = mapping.transformInboundCatalogName(catalogName);
+    if (!isTableAllowed(databasePrefix, transformedCatalogName,databaseName, tableName)) {
       throw new NoSuchObjectException(String.format("%s.%s table not found in any mappings", databaseName, tableName));
     }
   }
 
   @Override
-  public List<String> filterTables(String databaseName, List<String> tableNames, DatabaseMapping mapping) {
+  public List<String> filterTables(String catalogName, String databaseName, List<String> tableNames, CatalogMapping mapping) {
     List<String> allowedTables = new ArrayList<>();
-    String databasePrefix = mapping.getDatabasePrefix();
-    String transformedDb = mapping.transformInboundDatabaseName(databaseName);
+    String catalogPrefix = mapping.getCatalogPrefix();
+    String transformedCatalog = mapping.transformInboundCatalogName(catalogName);
     for (String table : tableNames) {
-      if (isTableAllowed(databasePrefix, transformedDb, table)) {
+      if (isTableAllowed(catalogPrefix, transformedCatalog,databaseName, table)) {
         allowedTables.add(table);
       }
     }
     return allowedTables;
   }
 
-  private boolean isTableAllowed(String databasePrefix, String database, String table) {
-    Map<String, AllowList> dbToTblAllowList = mappedTblByPrefix.get(databasePrefix);
+  private boolean isTableAllowed(String catalogPrefix,String catalogName, String database, String table) {
+    Map<String, AllowList> dbToTblAllowList = mappedTblByPrefix.get(catalogPrefix).get(catalogName);
     if (dbToTblAllowList == null) {
       // Accept everything
       return true;
@@ -273,24 +274,24 @@ public class PrefixBasedDatabaseMappingService implements MappingEventListener {
   }
 
   @Override
-  public List<DatabaseMapping> getDatabaseMappings() {
-    Builder<DatabaseMapping> builder = ImmutableList.builder();
+  public List<CatalogMapping> getCatalogMappings() {
+    Builder<CatalogMapping> builder = ImmutableList.builder();
     synchronized (mappingsByPrefix) {
-      for (DatabaseMapping databaseMapping : mappingsByPrefix.values()) {
-        if (includeInResults(databaseMapping)) {
-          builder.add(databaseMapping);
+      for (CatalogMapping catalogMapping : mappingsByPrefix.values()) {
+        if (includeInResults(catalogMapping)) {
+          builder.add(catalogMapping);
         }
       }
     }
     return builder.build();
   }
 
-  private Map<DatabaseMapping, String> databaseMappingsByDbPattern(@NotNull String databasePatterns) {
-    Map<DatabaseMapping, String> mappings = new LinkedHashMap<>();
+  private Map<CatalogMapping, String> databaseMappingsByDbPattern(@NotNull String databasePatterns) {
+    Map<CatalogMapping, String> mappings = new LinkedHashMap<>();
     Map<String, String> matchingPrefixes = GrammarUtils
         .selectMatchingPrefixes(mappingsByPrefix.keySet(), databasePatterns);
     for (Entry<String, String> prefixWithPattern : matchingPrefixes.entrySet()) {
-      DatabaseMapping mapping = mappingsByPrefix.get(prefixWithPattern.getKey());
+      CatalogMapping mapping = mappingsByPrefix.get(prefixWithPattern.getKey());
       if (mapping == null) {
         continue;
       }
@@ -301,11 +302,11 @@ public class PrefixBasedDatabaseMappingService implements MappingEventListener {
     return mappings;
   }
 
-  private List<String> getMappedAllowedDatabases(List<String> databases, DatabaseMapping mapping) {
+  private List<String> getMappedAllowedCatalogs(List<String> catalogs, CatalogMapping mapping) {
     List<String> mappedDatabases = new ArrayList<>();
-    for (String database : databases) {
-      if (isDbAllowed(mapping.getDatabasePrefix(), database)) {
-        mappedDatabases.addAll(mapping.transformOutboundDatabaseNameMultiple(database));
+    for (String catalog : catalogs) {
+      if (isDbAllowed(mapping.getCatalogPrefix(), catalog)) {
+        mappedDatabases.addAll(mapping.transformOutboundCatalogNameMultiple(database));
       }
     }
     return mappedDatabases;
@@ -320,8 +321,8 @@ public class PrefixBasedDatabaseMappingService implements MappingEventListener {
     return allowList.contains(database);
   }
 
-  private boolean databaseAndTableAllowed(String database, String table, DatabaseMapping mapping) {
-    String dbPrefix = mapping.getDatabasePrefix();
+  private boolean databaseAndTableAllowed(String database, String table, CatalogMapping mapping) {
+    String dbPrefix = mapping.getCatalogPrefix();
     boolean databaseAllowed = isDbAllowed(dbPrefix, database);
     boolean tableAllowed = isTableAllowed(dbPrefix, database, table);
     return databaseAllowed && tableAllowed;
@@ -333,9 +334,9 @@ public class PrefixBasedDatabaseMappingService implements MappingEventListener {
 
       @Override
       public List<TableMeta> getTableMeta(String db_patterns, String tbl_patterns, List<String> tbl_types) {
-        Map<DatabaseMapping, String> databaseMappingsForPattern = databaseMappingsByDbPattern(db_patterns);
+        Map<CatalogMapping, String> databaseMappingsForPattern = databaseMappingsByDbPattern(db_patterns);
 
-        BiFunction<TableMeta, DatabaseMapping, Boolean> filter = (tableMeta, mapping) -> databaseAndTableAllowed(
+        BiFunction<TableMeta, CatalogMapping, Boolean> filter = (tableMeta, mapping) -> databaseAndTableAllowed(
             tableMeta.getDbName(), tableMeta.getTableName(), mapping);
 
         return super.getTableMeta(tbl_patterns, tbl_types, databaseMappingsForPattern, filter);
@@ -343,24 +344,24 @@ public class PrefixBasedDatabaseMappingService implements MappingEventListener {
 
       @Override
       public List<String> getAllDatabases(String databasePattern) {
-        Map<DatabaseMapping, String> databaseMappingsForPattern = databaseMappingsByDbPattern(databasePattern);
+        Map<CatalogMapping, String> databaseMappingsForPattern = databaseMappingsByDbPattern(databasePattern);
 
-        BiFunction<String, DatabaseMapping, Boolean> filter = (database, mapping) -> isDbAllowed(
-            mapping.getDatabasePrefix(), database);
+        BiFunction<String, CatalogMapping, Boolean> filter = (database, mapping) -> isDbAllowed(
+            mapping.getCatalogPrefix(), database);
 
         return super.getAllDatabases(databaseMappingsForPattern, filter);
       }
 
       @Override
       public List<String> getAllDatabases() {
-        List<DatabaseMapping> databaseMappings = getDatabaseMappings();
+        List<CatalogMapping> databaseMappings = getCatalogMappings();
         List<GetAllDatabasesRequest> allRequests = new ArrayList<>();
 
-        BiFunction<List<String>, DatabaseMapping, List<String>> filter = (
+        BiFunction<List<String>, CatalogMapping, List<String>> filter = (
             databases,
             mapping) -> getMappedAllowedDatabases(databases, mapping);
 
-        for (DatabaseMapping mapping : databaseMappings) {
+        for (CatalogMapping mapping : databaseMappings) {
           GetAllDatabasesRequest allDatabasesRequest = new GetAllDatabasesRequest(mapping, filter);
           allRequests.add(allDatabasesRequest);
         }
@@ -369,7 +370,7 @@ public class PrefixBasedDatabaseMappingService implements MappingEventListener {
       }
 
       @Override
-      public GetAllFunctionsResponse getAllFunctions(List<DatabaseMapping> databaseMappings) {
+      public GetAllFunctionsResponse getAllFunctions(List<CatalogMapping> databaseMappings) {
         GetAllFunctionsResponse allFunctions = super.getAllFunctions(databaseMappings);
         addNonPrefixedPrimaryMetastoreFunctions(allFunctions);
         return allFunctions;
@@ -380,7 +381,7 @@ public class PrefixBasedDatabaseMappingService implements MappingEventListener {
        */
       private void addNonPrefixedPrimaryMetastoreFunctions(GetAllFunctionsResponse allFunctions) {
         List<Function> newFunctions = new ArrayList<>();
-        String primaryPrefix = primaryDatabaseMapping().getDatabasePrefix();
+        String primaryPrefix = primaryCatalogMapping().getCatalogPrefix();
         if (!"".equals(primaryPrefix)) {
           if (allFunctions.isSetFunctions()) {
             for (Function function : allFunctions.getFunctions()) {
@@ -388,7 +389,7 @@ public class PrefixBasedDatabaseMappingService implements MappingEventListener {
               if (function.getDbName().startsWith(primaryPrefix)) {
                 Function unprefixed = new Function(function);
                 // strip off the prefix
-                primaryDatabaseMapping.transformInboundFunction(unprefixed);
+                primaryCatalogMapping.transformInboundFunction(unprefixed);
                 newFunctions.add(unprefixed);
               }
             }

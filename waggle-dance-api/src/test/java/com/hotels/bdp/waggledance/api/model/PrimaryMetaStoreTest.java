@@ -63,28 +63,28 @@ public class PrimaryMetaStoreTest extends AbstractMetaStoreTest<PrimaryMetaStore
 
   @Test
   public void emptyDatabasePrefix() {
-    metaStore.setDatabasePrefix("");
+    metaStore.setCatalogPrefix("");
     Set<ConstraintViolation<PrimaryMetaStore>> violations = validator.validate(metaStore);
     assertThat(violations.size(), is(0));
-    assertThat(metaStore.getDatabasePrefix(), is(""));
+    assertThat(metaStore.getCatalogPrefix(), is(""));
   }
 
   @Test
   public void nullDatabasePrefix() {
-    metaStore.setDatabasePrefix(null);
+    metaStore.setCatalogPrefix(null);
     Set<ConstraintViolation<PrimaryMetaStore>> violations = validator.validate(metaStore);
     // Violation is not triggered cause EMPTY STRING is always returned. Warning is logged instead
     assertThat(violations.size(), is(0));
-    assertThat(metaStore.getDatabasePrefix(), is(""));
+    assertThat(metaStore.getCatalogPrefix(), is(""));
   }
 
   @Test
   public void nonEmptyDatabasePrefix() {
     String prefix = "abc";
-    metaStore.setDatabasePrefix(prefix);
+    metaStore.setCatalogPrefix(prefix);
     Set<ConstraintViolation<PrimaryMetaStore>> violations = validator.validate(metaStore);
     assertThat(violations.size(), is(0));
-    assertThat(metaStore.getDatabasePrefix(), is(prefix));
+    assertThat(metaStore.getCatalogPrefix(), is(prefix));
   }
 
   @Test

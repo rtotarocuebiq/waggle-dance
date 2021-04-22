@@ -29,7 +29,7 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.hotels.bdp.waggledance.mapping.model.DatabaseMapping;
+import com.hotels.bdp.waggledance.mapping.model.CatalogMapping;
 import com.hotels.bdp.waggledance.mapping.service.requests.RequestCallable;
 
 public class PanopticConcurrentOperationExecutor implements PanopticOperationExecutor {
@@ -61,7 +61,7 @@ public class PanopticConcurrentOperationExecutor implements PanopticOperationExe
       }
 
       for (Future<List<T>> future : futures) {
-        DatabaseMapping mapping = iterator.next().getMapping();
+        CatalogMapping mapping = iterator.next().getMapping();
         List<T> result = getResultFromFuture(future, mapping.getMetastoreMappingName(), errorMessage);
         allResults.addAll(result);
       }

@@ -22,22 +22,22 @@ import java.util.function.BiFunction;
 import org.apache.hadoop.hive.metastore.api.TableMeta;
 import org.apache.thrift.TException;
 
-import com.hotels.bdp.waggledance.mapping.model.DatabaseMapping;
+import com.hotels.bdp.waggledance.mapping.model.CatalogMapping;
 
 public class GetTableMetaRequest implements RequestCallable<List<TableMeta>> {
 
-  private final DatabaseMapping mapping;
+  private final CatalogMapping mapping;
   private final String dbPattern;
   private final String tablePattern;
   private final List<String> tableTypes;
-  private final BiFunction<TableMeta, DatabaseMapping, Boolean> filter;
+  private final BiFunction<TableMeta, CatalogMapping, Boolean> filter;
 
   public GetTableMetaRequest(
-      DatabaseMapping mapping,
+      CatalogMapping mapping,
       String dbPattern,
       String tablePattern,
       List<String> tableTypes,
-      BiFunction<TableMeta, DatabaseMapping, Boolean> filter) {
+      BiFunction<TableMeta, CatalogMapping, Boolean> filter) {
     this.mapping = mapping;
     this.dbPattern = dbPattern;
     this.tablePattern = tablePattern;
@@ -58,7 +58,7 @@ public class GetTableMetaRequest implements RequestCallable<List<TableMeta>> {
   }
 
   @Override
-  public DatabaseMapping getMapping() {
+  public CatalogMapping getMapping() {
     return mapping;
   }
 }

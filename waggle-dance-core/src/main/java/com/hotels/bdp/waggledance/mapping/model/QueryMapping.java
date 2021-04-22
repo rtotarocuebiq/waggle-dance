@@ -26,5 +26,5 @@ public interface QueryMapping {
    *         -&gt; 'select id from waggle_db.table'
    * @throws WaggleDanceException when the transform could not be done.
    */
-  String transformOutboundDatabaseName(MetaStoreMapping metaStoreMapping, String query) throws WaggleDanceException;
+  String transformOutboundCatalogName(MetaStoreMapping metaStoreMapping, String query) throws WaggleDanceException;
 }

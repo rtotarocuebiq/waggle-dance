@@ -1,0 +1,14 @@
+primary-meta-store:
+  access-control-type: READ_ONLY
+  database-prefix: ''
+  latency: 0
+  name: local
+  remote-meta-store-uris: thrift://localhost:9083
+federated-meta-stores:
+- access-control-type: READ_ONLY
+  database-name-mapping: {}
+  database-prefix: dw_
+  latency: 0
+  name: dw
+  remote-meta-store-uris: thrift://10.0.0.1:9083
+  writable-database-white-list: []

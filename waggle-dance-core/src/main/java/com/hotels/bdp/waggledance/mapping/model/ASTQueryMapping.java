@@ -44,7 +44,7 @@ public enum ASTQueryMapping implements QueryMapping {
   private final static Comparator<CommonToken> ON_START_INDEX = Comparator.comparingInt(CommonToken::getStartIndex);
 
   @Override
-  public String transformOutboundDatabaseName(MetaStoreMapping metaStoreMapping, String query) {
+  public String transformOutboundCatalogName(MetaStoreMapping metaStoreMapping, String query) {
     if (hasNonHiveViewMarker(query)) {
       // skipping queries that are not "Hive" view queries. We can't parse those.
       return query;
@@ -75,7 +75,7 @@ public enum ASTQueryMapping implements QueryMapping {
     for (CommonToken dbNameNode : dbNameTokens) {
       final String dbName = dbNameNode.getText();
       final boolean escaped = dbName.startsWith("`") && dbName.endsWith("`");
-      String transformedDbName = metaStoreMapping.transformOutboundDatabaseName(unescapeIdentifier(dbName));
+      String transformedDbName = metaStoreMapping.transformOutboundCatalogName(unescapeIdentifier(dbName));
       if (escaped) {
         transformedDbName = "`" + transformedDbName + "`";
       }
@@ -97,7 +97,7 @@ public enum ASTQueryMapping implements QueryMapping {
       Matcher matcher = pattern.matcher(result);
       if (matcher.find()) {
         int index = matcher.start();
-        String prefix = metaStoreMapping.getDatabasePrefix();
+        String prefix = metaStoreMapping.getCatalogPrefix();
         result.replace(index, index, prefix);
       }
     }

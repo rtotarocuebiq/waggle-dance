@@ -15,21 +15,28 @@
  */
 package com.hotels.bdp.waggledance.api.model;
 
+import java.util.Arrays;
 import java.util.List;
 
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotEmpty;
 
 public class MappedTables {
+  @NotBlank private String catalog;
   @NotBlank private String database;
   @NotEmpty private List<String> mappedTables;
 
   public MappedTables() {
   }
 
-  public MappedTables(String database, List<String> mappedTables) {
+  public MappedTables(String catalog, String database, List<String> mappedTables) {
     this.database = database;
     this.mappedTables = mappedTables;
+  }
+
+  public MappedTables(String catalog, String database, String ... mappedTables) {
+    this.database = database;
+    this.mappedTables = Arrays.asList(mappedTables);
   }
 
   public String getDatabase() {
@@ -46,5 +53,15 @@ public class MappedTables {
 
   public void setMappedTables(List<String> mappedTables) {
     this.mappedTables = mappedTables;
+  }
+
+  public String getCatalog()
+  {
+    return catalog;
+  }
+
+  public void setCatalog(String catalog)
+  {
+    this.catalog = catalog;
   }
 }

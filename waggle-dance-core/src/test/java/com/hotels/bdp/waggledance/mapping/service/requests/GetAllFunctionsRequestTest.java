@@ -35,13 +35,13 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import com.hotels.bdp.waggledance.mapping.model.DatabaseMapping;
+import com.hotels.bdp.waggledance.mapping.model.CatalogMapping;
 
 @RunWith(MockitoJUnitRunner.class)
 public class GetAllFunctionsRequestTest {
 
   @Mock
-  private DatabaseMapping mapping;
+  private CatalogMapping mapping;
   @Mock
   private Iface client;
 

@@ -21,6 +21,7 @@ import java.util.List;
 
 import org.apache.hadoop.hive.metastore.MetaStoreFilterHook;
 import org.apache.hadoop.hive.metastore.api.AlreadyExistsException;
+import org.apache.hadoop.hive.metastore.api.Catalog;
 import org.apache.hadoop.hive.metastore.api.Database;
 import org.apache.hadoop.hive.metastore.api.InvalidObjectException;
 import org.apache.hadoop.hive.metastore.api.MetaException;
@@ -36,32 +37,32 @@ public abstract class MetaStoreMappingDecorator implements MetaStoreMapping {
   }
 
   @Override
-  public String transformOutboundDatabaseName(String databaseName) {
+  public String transformOutboundCatalogName(String databaseName) {
     if (databaseName == null) {
       return null;
     }
-    return metaStoreMapping.transformOutboundDatabaseName(databaseName);
+    return metaStoreMapping.transformOutboundCatalogName(databaseName);
   }
 
   @Override
-  public List<String> transformOutboundDatabaseNameMultiple(String databaseName) {
+  public List<String> transformOutboundCatalogNameMultiple(String databaseName) {
     if (databaseName == null) {
       return Collections.emptyList();
     }
-    return metaStoreMapping.transformOutboundDatabaseNameMultiple(databaseName);
+    return metaStoreMapping.transformOutboundCatalogNameMultiple(databaseName);
   }
 
   @Override
-  public Database transformOutboundDatabase(Database database) {
-    return metaStoreMapping.transformOutboundDatabase(database);
+  public Catalog transformOutboundCatalog(Catalog catalog) {
+    return metaStoreMapping.transformOutboundCatalog(catalog);
   }
 
   @Override
-  public String transformInboundDatabaseName(String databaseName) {
+  public String transformInboundCatalogName(String databaseName) {
     if (databaseName == null) {
       return null;
     }
-    return metaStoreMapping.transformInboundDatabaseName(databaseName);
+    return metaStoreMapping.transformInboundCatalogName(databaseName);
   }
 
   @Override
@@ -80,8 +81,8 @@ public abstract class MetaStoreMappingDecorator implements MetaStoreMapping {
   }
 
   @Override
-  public String getDatabasePrefix() {
-    return metaStoreMapping.getDatabasePrefix();
+  public String getCatalogPrefix() {
+    return metaStoreMapping.getCatalogPrefix();
   }
 
   @Override
@@ -95,8 +96,8 @@ public abstract class MetaStoreMappingDecorator implements MetaStoreMapping {
   }
 
   @Override
-  public MetaStoreMapping checkWritePermissions(String databaseName) {
-    return metaStoreMapping.checkWritePermissions(databaseName);
+  public MetaStoreMapping checkWritePermissions(String catalog, String databaseName) {
+    return metaStoreMapping.checkWritePermissions(catalog, databaseName);
   }
 
   @Override

@@ -18,10 +18,11 @@ package com.hotels.bdp.waggledance.server.security;
 public interface AccessControlHandler {
 
   /**
+   * @param catalog of the database
    * @param databaseName name of the database
    * @return true if databaseName is writable, false otherwise
    */
-  boolean hasWritePermission(String databaseName);
+  boolean hasWritePermission(String catalog, String databaseName);
 
   /**
    * @return true if databases are allowed to be created, false otherwise
@@ -31,7 +32,8 @@ public interface AccessControlHandler {
   /**
    * Called when a database was created via waggleDance, can be used to update any permissions
    *
+   * @param catalog of the created database
    * @param name of the created database
    */
-  void databaseCreatedNotification(String name);
+  void databaseCreatedNotification(String catalog, String name);
 }

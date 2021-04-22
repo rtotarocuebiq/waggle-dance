@@ -116,9 +116,9 @@ public class YamlFederatedMetaStoreStorage implements FederatedMetaStoreStorage 
     if (federationsMap.containsKey(federatedMetaStore.getName())) {
       throw new IllegalArgumentException("Name '" + federatedMetaStore.getName() + "' is already registered");
     }
-    if (!uniqueMetaStorePrefix(federatedMetaStore.getDatabasePrefix(), federationsMap)) {
+    if (!uniqueMetaStorePrefix(federatedMetaStore.getCatalogPrefix(), federationsMap)) {
       throw new IllegalArgumentException(
-          "Prefix '" + federatedMetaStore.getDatabasePrefix() + "' is already registered");
+          "Prefix '" + federatedMetaStore.getCatalogPrefix() + "' is already registered");
     }
     LOG.info("Adding federation {}", federatedMetaStore);
     federationsMap.put(federatedMetaStore.getName(), federatedMetaStore);
@@ -126,7 +126,7 @@ public class YamlFederatedMetaStoreStorage implements FederatedMetaStoreStorage 
 
   private static boolean uniqueMetaStorePrefix(String prefix, Map<String, AbstractMetaStore> federationsMap) {
     for (AbstractMetaStore metaStore : federationsMap.values()) {
-      if (metaStore.getDatabasePrefix().equalsIgnoreCase(prefix)) {
+      if (metaStore.getCatalogPrefix().equalsIgnoreCase(prefix)) {
         return false;
       }
     }

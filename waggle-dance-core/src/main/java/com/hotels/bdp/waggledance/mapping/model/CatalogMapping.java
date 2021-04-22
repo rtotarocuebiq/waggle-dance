@@ -53,7 +53,8 @@ import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.hive.metastore.api.TableMeta;
 import org.apache.hadoop.hive.metastore.api.TableStatsRequest;
 
-public interface DatabaseMapping extends MetaStoreMapping {
+public interface CatalogMapping
+        extends MetaStoreMapping {
 
 
   Partition transformInboundPartition(Partition partition);

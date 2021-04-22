@@ -21,13 +21,13 @@ import java.util.List;
 import org.apache.hadoop.hive.metastore.api.Function;
 import org.apache.hadoop.hive.metastore.api.GetAllFunctionsResponse;
 
-import com.hotels.bdp.waggledance.mapping.model.DatabaseMapping;
+import com.hotels.bdp.waggledance.mapping.model.CatalogMapping;
 
 public class GetAllFunctionsRequest implements RequestCallable<List<GetAllFunctionsResponse>> {
 
-  private final DatabaseMapping mapping;
+  private final CatalogMapping mapping;
 
-  public GetAllFunctionsRequest(DatabaseMapping mapping) {
+  public GetAllFunctionsRequest(CatalogMapping mapping) {
     this.mapping = mapping;
   }
 
@@ -43,7 +43,7 @@ public class GetAllFunctionsRequest implements RequestCallable<List<GetAllFuncti
   }
 
   @Override
-  public DatabaseMapping getMapping() {
+  public CatalogMapping getMapping() {
     return mapping;
   }
 

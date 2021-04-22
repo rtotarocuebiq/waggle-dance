@@ -17,9 +17,12 @@ package com.hotels.bdp.waggledance.server;
 
 import java.util.List;
 
+import com.hotels.bdp.waggledance.mapping.model.CatalogMapping;
 import org.apache.hadoop.hive.metastore.api.AlreadyExistsException;
+import org.apache.hadoop.hive.metastore.api.AlterCatalogRequest;
 import org.apache.hadoop.hive.metastore.api.AlterISchemaRequest;
 import org.apache.hadoop.hive.metastore.api.CreateCatalogRequest;
+import org.apache.hadoop.hive.metastore.api.CreationMetadata;
 import org.apache.hadoop.hive.metastore.api.DropCatalogRequest;
 import org.apache.hadoop.hive.metastore.api.FindSchemasByColsResp;
 import org.apache.hadoop.hive.metastore.api.FindSchemasByColsRqst;
@@ -28,12 +31,16 @@ import org.apache.hadoop.hive.metastore.api.GetCatalogResponse;
 import org.apache.hadoop.hive.metastore.api.GetCatalogsResponse;
 import org.apache.hadoop.hive.metastore.api.GetRuntimeStatsRequest;
 import org.apache.hadoop.hive.metastore.api.GetSerdeRequest;
+import org.apache.hadoop.hive.metastore.api.GrantRevokePrivilegeRequest;
+import org.apache.hadoop.hive.metastore.api.GrantRevokePrivilegeResponse;
+import org.apache.hadoop.hive.metastore.api.HiveObjectRef;
 import org.apache.hadoop.hive.metastore.api.ISchema;
 import org.apache.hadoop.hive.metastore.api.ISchemaName;
 import org.apache.hadoop.hive.metastore.api.InvalidObjectException;
 import org.apache.hadoop.hive.metastore.api.InvalidOperationException;
 import org.apache.hadoop.hive.metastore.api.LockResponse;
 import org.apache.hadoop.hive.metastore.api.MapSchemaVersionToSerdeRequest;
+import org.apache.hadoop.hive.metastore.api.Materialization;
 import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.hadoop.hive.metastore.api.NoSuchObjectException;
 import org.apache.hadoop.hive.metastore.api.RuntimeStat;
@@ -41,6 +48,7 @@ import org.apache.hadoop.hive.metastore.api.SchemaVersion;
 import org.apache.hadoop.hive.metastore.api.SchemaVersionDescriptor;
 import org.apache.hadoop.hive.metastore.api.SerDeInfo;
 import org.apache.hadoop.hive.metastore.api.SetSchemaVersionStateRequest;
+import org.apache.hadoop.hive.metastore.api.UnknownDBException;
 import org.apache.hadoop.hive.metastore.api.WMAlterPoolRequest;
 import org.apache.hadoop.hive.metastore.api.WMAlterPoolResponse;
 import org.apache.hadoop.hive.metastore.api.WMAlterResourcePlanRequest;
@@ -99,6 +107,13 @@ public class FederatedHMSHandlerHive3 extends FederatedHMSHandler
     }
 
     @Override
+    public void alter_catalog(AlterCatalogRequest alterCatalogRequest)
+            throws NoSuchObjectException, InvalidOperationException, MetaException, TException
+    {
+
+    }
+
+    @Override
     public GetCatalogResponse get_catalog(GetCatalogRequest getCatalogRequest)
             throws NoSuchObjectException, MetaException, TException
     {
@@ -117,6 +132,22 @@ public class FederatedHMSHandlerHive3 extends FederatedHMSHandler
             throws NoSuchObjectException, InvalidOperationException, MetaException, TException
     {
 
+    }
+
+    @Override
+    public Materialization get_materialization_invalidation_info(CreationMetadata creationMetadata, String validTxnList)
+            throws MetaException, InvalidOperationException, UnknownDBException, TException
+    {
+        CatalogMapping databaseMapping = databaseMappingService.databaseMapping(creationMetadata.getDbName());
+        //TODO: authorization?
+        return databaseMapping.getClient().get_materialization_invalidation_info(creationMetadata,validTxnList);
+    }
+
+    @Override
+    public GrantRevokePrivilegeResponse refresh_privileges(HiveObjectRef hiveObjectRef, String s, GrantRevokePrivilegeRequest grantRevokePrivilegeRequest)
+            throws MetaException, TException
+    {
+        return null;
     }
 
     @Override

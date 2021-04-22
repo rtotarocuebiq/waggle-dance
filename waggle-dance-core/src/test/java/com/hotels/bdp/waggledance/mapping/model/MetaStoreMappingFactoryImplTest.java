@@ -66,7 +66,7 @@ public class MetaStoreMappingFactoryImplTest {
   @Before
   public void init() {
     when(prefixNamingStrategy.apply(any(AbstractMetaStore.class)))
-        .thenAnswer((Answer<String>) invocation -> ((AbstractMetaStore) invocation.getArgument(0)).getDatabasePrefix());
+        .thenAnswer((Answer<String>) invocation -> ((AbstractMetaStore) invocation.getArgument(0)).getCatalogPrefix());
     factory = new MetaStoreMappingFactoryImpl(waggleDanceConfiguration, prefixNamingStrategy, metaStoreClientFactory,
         accessControlHandlerFactory);
   }

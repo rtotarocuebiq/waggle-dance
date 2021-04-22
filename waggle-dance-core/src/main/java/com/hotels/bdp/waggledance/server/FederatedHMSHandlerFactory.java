@@ -27,7 +27,7 @@ import com.hotels.bdp.waggledance.mapping.service.MappingEventListener;
 import com.hotels.bdp.waggledance.mapping.service.MetaStoreMappingFactory;
 import com.hotels.bdp.waggledance.mapping.service.impl.MonitoredDatabaseMappingService;
 import com.hotels.bdp.waggledance.mapping.service.impl.NotifyingFederationService;
-import com.hotels.bdp.waggledance.mapping.service.impl.PrefixBasedDatabaseMappingService;
+import com.hotels.bdp.waggledance.mapping.service.impl.PrefixBasedCatalogMappingService;
 import com.hotels.bdp.waggledance.mapping.service.impl.StaticDatabaseMappingService;
 
 @Component
@@ -68,7 +68,7 @@ public class FederatedHMSHandlerFactory {
       return new StaticDatabaseMappingService(metaStoreMappingFactory, notifyingFederationService.getAll(),
           queryMapping);
     } else if (waggleDanceConfiguration.getDatabaseResolution() == DatabaseResolution.PREFIXED) {
-      return new PrefixBasedDatabaseMappingService(metaStoreMappingFactory, notifyingFederationService.getAll(),
+      return new PrefixBasedCatalogMappingService(metaStoreMappingFactory, notifyingFederationService.getAll(),
           queryMapping);
     } else {
       throw new WaggleDanceException("Cannot instantiate databaseMappingService for prefixType '"

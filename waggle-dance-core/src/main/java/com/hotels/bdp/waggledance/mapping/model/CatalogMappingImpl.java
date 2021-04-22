@@ -69,15 +69,16 @@ import org.slf4j.LoggerFactory;
 
 import com.hotels.bdp.waggledance.api.WaggleDanceException;
 
-public class DatabaseMappingImpl implements CatalogMapping
+public class CatalogMappingImpl
+        implements CatalogMapping
 {
 
-  private final static Logger log = LoggerFactory.getLogger(DatabaseMappingImpl.class);
+  private final static Logger log = LoggerFactory.getLogger(CatalogMappingImpl.class);
 
   private final MetaStoreMapping metaStoreMapping;
   private final QueryMapping queryMapping;
 
-  public DatabaseMappingImpl(MetaStoreMapping metaStoreMapping, QueryMapping queryMapping) {
+  public CatalogMappingImpl(MetaStoreMapping metaStoreMapping, QueryMapping queryMapping) {
     this.metaStoreMapping = metaStoreMapping;
     this.queryMapping = queryMapping;
   }

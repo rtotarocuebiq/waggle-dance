@@ -49,8 +49,8 @@ public class PrimaryMetaStore extends AbstractMetaStore {
 
   @NotNull
   @Override
-  public String getDatabasePrefix() {
-    String prefix = super.getDatabasePrefix();
+  public String getCatalogPrefix() {
+    String prefix = super.getCatalogPrefix();
     if (prefix == null) {
       prefix = EMPTY_PREFIX;
     }

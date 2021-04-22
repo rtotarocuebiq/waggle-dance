@@ -48,26 +48,26 @@ public class FederatedMetaStoreTest extends AbstractMetaStoreTest<FederatedMetaS
 
   @Test
   public void emptyDatabasePrefix() {
-    metaStore.setDatabasePrefix("");
+    metaStore.setCatalogPrefix("");
     Set<ConstraintViolation<FederatedMetaStore>> violations = validator.validate(metaStore);
     assertThat(violations.size(), is(0));
-    assertThat(metaStore.getDatabasePrefix(), is(""));
+    assertThat(metaStore.getCatalogPrefix(), is(""));
   }
 
   @Test
   public void nonEmptyDatabasePrefix() {
-    metaStore.setDatabasePrefix("override");
+    metaStore.setCatalogPrefix("override");
     Set<ConstraintViolation<FederatedMetaStore>> violations = validator.validate(metaStore);
     assertThat(violations.size(), is(0));
-    assertThat("override", is(metaStore.getDatabasePrefix()));
+    assertThat("override", is(metaStore.getCatalogPrefix()));
   }
 
   @Test
   public void nullDatabasePrefix() {
-    metaStore.setDatabasePrefix(null);
+    metaStore.setCatalogPrefix(null);
     Set<ConstraintViolation<FederatedMetaStore>> violations = validator.validate(metaStore);
     assertThat(violations.size(), is(0));
-    assertThat("name_", is(metaStore.getDatabasePrefix()));
+    assertThat("name_", is(metaStore.getCatalogPrefix()));
   }
 
   @Test

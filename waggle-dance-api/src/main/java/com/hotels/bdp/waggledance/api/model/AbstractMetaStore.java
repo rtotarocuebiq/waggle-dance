@@ -43,10 +43,11 @@ import com.hotels.hcommon.hive.metastore.client.tunnelling.MetastoreTunnel;
     @Type(value = PrimaryMetaStore.class, name = "PRIMARY"),
     @Type(value = FederatedMetaStore.class, name = "FEDERATED") })
 public abstract class AbstractMetaStore {
-  private String databasePrefix;
+  private String catalogPrefix;
   private String hiveMetastoreFilterHook;
   private List<String> writableDatabaseWhitelist;
-  private List<String> mappedDatabases;
+  private List<String> mappedCatalogs;
+  private @Valid List<MappedDbs> mappedDatabases;
   private @Valid List<MappedTables> mappedTables;
   private Map<String, String> databaseNameMapping = Collections.emptyMap();
   private @NotBlank String name;
@@ -91,12 +92,12 @@ public abstract class AbstractMetaStore {
     return new PrimaryMetaStore(name, remoteMetaStoreUris, AccessControlType.READ_ONLY);
   }
 
-  public String getDatabasePrefix() {
-    return databasePrefix;
+  public String getCatalogPrefix() {
+    return catalogPrefix;
   }
 
-  public void setDatabasePrefix(String databasePrefix) {
-    this.databasePrefix = databasePrefix;
+  public void setCatalogPrefix(String catalogPrefix) {
+    this.catalogPrefix = catalogPrefix;
   }
 
   public String getHiveMetastoreFilterHook() {
@@ -167,11 +168,23 @@ public abstract class AbstractMetaStore {
     this.latency = latency;
   }
 
-  public List<String> getMappedDatabases() {
+  public List<String> getMappedCatalogs()
+  {
+    return mappedCatalogs;
+  }
+
+  public void setMappedCatalogs(List<String> mappedCatalogs)
+  {
+    this.mappedCatalogs = mappedCatalogs;
+  }
+
+  public List<MappedDbs> getMappedDatabases()
+  {
     return mappedDatabases;
   }
 
-  public void setMappedDatabases(List<String> mappedDatabases) {
+  public void setMappedDatabases(List<MappedDbs> mappedDatabases)
+  {
     this.mappedDatabases = mappedDatabases;
   }
 
@@ -232,7 +245,7 @@ public abstract class AbstractMetaStore {
     return MoreObjects
         .toStringHelper(this)
         .add("name", name)
-        .add("databasePrefix", databasePrefix)
+        .add("databasePrefix", catalogPrefix)
         .add("federationType", getFederationType())
         .add("remoteMetaStoreUris", remoteMetaStoreUris)
         .add("metastoreTunnel", metastoreTunnel)

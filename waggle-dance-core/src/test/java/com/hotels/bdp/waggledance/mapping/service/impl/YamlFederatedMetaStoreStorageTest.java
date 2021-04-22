@@ -111,9 +111,9 @@ public class YamlFederatedMetaStoreStorageTest {
     YamlFederatedMetaStoreStorage storage = new YamlFederatedMetaStoreStorage(file.toURI().toString(), configuration);
     storage.loadFederation();
     assertThat(storage.getAll().size(), is(3));
-    assertThat(storage.getAll().get(0).getDatabasePrefix(), is("primary_"));
-    assertThat(storage.getAll().get(1).getDatabasePrefix(), is(""));
-    assertThat(storage.getAll().get(2).getDatabasePrefix(), is("hcom_2_prefix_"));
+    assertThat(storage.getAll().get(0).getCatalogPrefix(), is("primary_"));
+    assertThat(storage.getAll().get(1).getCatalogPrefix(), is(""));
+    assertThat(storage.getAll().get(2).getCatalogPrefix(), is("hcom_2_prefix_"));
   }
 
   @Test
@@ -158,7 +158,7 @@ public class YamlFederatedMetaStoreStorageTest {
     assertThat(storage.getAll().get(0), is(newPrimaryInstance("hcom_3", "thrift://localhost:39083")));
     assertThat(storage.getAll().get(1), is(newFederatedInstance("hcom_1", "thrift://localhost:19083")));
     FederatedMetaStore metaStore = newFederatedInstance("hcom_2", "thrift://localhost:29083");
-    metaStore.setDatabasePrefix("hcom_2_prefix_");
+    metaStore.setCatalogPrefix("hcom_2_prefix_");
     assertThat(storage.getAll().get(2), is(metaStore));
     assertThat(storage.getAll().get(2).getHiveMetastoreFilterHook(), is("filter.hook.class"));
   }
@@ -172,7 +172,7 @@ public class YamlFederatedMetaStoreStorageTest {
     assertThat(storage.getAll().size(), is(2));
     assertThat(storage.getAll().get(0), is(newPrimaryInstance("hcom_2", "thrift://localhost:39083")));
     FederatedMetaStore metaStore = newFederatedInstance("hcom_1", "thrift://localhost:19083");
-    metaStore.setDatabasePrefix("hcom_1_prefix_");
+    metaStore.setCatalogPrefix("hcom_1_prefix_");
     metaStore.setMappedDatabases(Lists.newArrayList("db1", "db2"));
     MappedTables mappedTables1 = new MappedTables("db1", Lists.newArrayList("tbl1"));
     MappedTables mappedTables2 = new MappedTables("db2", Lists.newArrayList("tbl2"));
@@ -279,7 +279,7 @@ public class YamlFederatedMetaStoreStorageTest {
     FederatedMetaStore metaStore = newFederatedInstance("name", "metastoreUri");
     storage.insert(metaStore);
     FederatedMetaStore metaStoreWithSamePrefix = newFederatedInstance("newName", "uris");
-    metaStoreWithSamePrefix.setDatabasePrefix(metaStore.getDatabasePrefix());
+    metaStoreWithSamePrefix.setCatalogPrefix(metaStore.getCatalogPrefix());
     storage.insert(metaStoreWithSamePrefix);
   }
 

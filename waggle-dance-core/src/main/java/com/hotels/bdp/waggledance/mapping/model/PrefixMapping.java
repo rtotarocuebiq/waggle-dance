@@ -25,25 +25,25 @@ public class PrefixMapping extends MetaStoreMappingDecorator {
   }
 
   @Override
-  public String transformOutboundDatabaseName(String databaseName) {
-    return getDatabasePrefix() + super.transformOutboundDatabaseName(databaseName);
+  public String transformOutboundCatalogName(String catalogName) {
+    return getCatalogPrefix() + super.transformOutboundCatalogName(catalogName);
   }
 
   @Override
-  public List<String> transformOutboundDatabaseNameMultiple(String databaseName) {
-    List<String> outbound = super.transformOutboundDatabaseNameMultiple(databaseName);
+  public List<String> transformOutboundCatalogNameMultiple(String catalogName) {
+    List<String> outbound = super.transformOutboundCatalogNameMultiple(catalogName);
     List<String> result = new ArrayList<>(outbound.size());
-    for (String outboundDatabase : outbound) {
-      result.add(getDatabasePrefix() + outboundDatabase);
+    for (String outboundCatalog : outbound) {
+      result.add(getCatalogPrefix() + outboundCatalog);
     }
     return result;
   }
 
   @Override
-  public String transformInboundDatabaseName(String databaseName) {
-    String result = super.transformInboundDatabaseName(databaseName);
-    if (result.startsWith(getDatabasePrefix())) {
-      return result.substring(getDatabasePrefix().length());
+  public String transformInboundCatalogName(String catalogName) {
+    String result = super.transformInboundCatalogName(catalogName);
+    if (result.startsWith(getCatalogPrefix())) {
+      return result.substring(getCatalogPrefix().length());
     }
     return result;
   }

@@ -22,6 +22,7 @@ import java.util.Locale;
 import com.hotels.bdp.waggledance.api.WaggleDanceException;
 import com.hotels.bdp.waggledance.api.federation.service.FederationService;
 import com.hotels.bdp.waggledance.api.model.AbstractMetaStore;
+import com.hotels.bdp.waggledance.api.model.MappedDbs;
 import com.hotels.bdp.waggledance.api.model.PrimaryMetaStore;
 import com.hotels.bdp.waggledance.util.AllowList;
 
@@ -47,7 +48,7 @@ public class DatabaseWhitelistAccessControlHandler implements AccessControlHandl
   }
 
   @Override
-  public boolean hasWritePermission(String databaseName) {
+  public boolean hasWritePermission(String catalog, String databaseName) {
     return writableDatabaseWhiteList.contains(databaseName);
   }
 
@@ -57,9 +58,9 @@ public class DatabaseWhitelistAccessControlHandler implements AccessControlHandl
   }
 
   @Override
-  public void databaseCreatedNotification(String name) {
+  public void databaseCreatedNotification(String catalog, String name) {
     List<String> newWritableDatabaseWhiteList = new ArrayList<>(metaStore.getWritableDatabaseWhiteList());
-    List<String> mappedDatabases = null;
+    List<MappedDbs> mappedDatabases = null;
     String nameLowerCase = trimToLowerCase(name);
     if (!newWritableDatabaseWhiteList.contains(nameLowerCase)) {
       newWritableDatabaseWhiteList.add(nameLowerCase);

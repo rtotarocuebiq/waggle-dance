@@ -33,7 +33,7 @@ public class PrefixMappingTest {
   @Test
   public void mapNames() throws Exception {
     PrefixMapping prefixMapping = new PrefixMapping(metaStoreMapping);
-    assertThat(prefixMapping.transformInboundDatabaseName("prefix_name"), is("name"));
+    assertThat(prefixMapping.transformInboundCatalogName("prefix_name"), is("name"));
     assertThat(prefixMapping.transformOutboundDatabaseName("name"), is("prefix_name"));
   }
 

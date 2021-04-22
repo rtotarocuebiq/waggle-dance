@@ -17,15 +17,15 @@ package com.hotels.bdp.waggledance.mapping.service.requests;
 
 import java.util.List;
 
-import com.hotels.bdp.waggledance.mapping.model.DatabaseMapping;
+import com.hotels.bdp.waggledance.mapping.model.CatalogMapping;
 
 public class SetUgiRequest implements RequestCallable<List<String>> {
 
-  private final DatabaseMapping mapping;
+  private final CatalogMapping mapping;
   private final String user_name;
   private final List<String> group_names;
 
-  public SetUgiRequest(DatabaseMapping mapping, String user_name, List<String> group_names) {
+  public SetUgiRequest(CatalogMapping mapping, String user_name, List<String> group_names) {
     this.mapping = mapping;
     this.user_name = user_name;
     this.group_names = group_names;
@@ -37,7 +37,7 @@ public class SetUgiRequest implements RequestCallable<List<String>> {
   }
 
   @Override
-  public DatabaseMapping getMapping() {
+  public CatalogMapping getMapping() {
     return mapping;
   }
 }

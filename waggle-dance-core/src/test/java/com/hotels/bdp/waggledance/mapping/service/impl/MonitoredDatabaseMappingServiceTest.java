@@ -33,7 +33,7 @@ import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 import com.hotels.bdp.waggledance.api.model.AbstractMetaStore;
-import com.hotels.bdp.waggledance.mapping.model.DatabaseMapping;
+import com.hotels.bdp.waggledance.mapping.model.CatalogMapping;
 import com.hotels.bdp.waggledance.mapping.service.MappingEventListener;
 import com.hotels.bdp.waggledance.mapping.service.PanopticOperationHandler;
 import com.hotels.bdp.waggledance.metrics.CurrentMonitoredMetaStoreHolder;
@@ -42,8 +42,8 @@ import com.hotels.bdp.waggledance.metrics.CurrentMonitoredMetaStoreHolder;
 public class MonitoredDatabaseMappingServiceTest {
 
   private @Mock MappingEventListener wrapped;
-  private @Mock DatabaseMapping primaryMapping;
-  private @Mock DatabaseMapping otherMapping;
+  private @Mock CatalogMapping primaryMapping;
+  private @Mock CatalogMapping otherMapping;
   private @Mock PanopticOperationHandler multiMetastoreOperationsHandler;
   private @Mock AbstractMetaStore metaStore;
   private MonitoredDatabaseMappingService service;
@@ -107,7 +107,7 @@ public class MonitoredDatabaseMappingServiceTest {
 
   @Test
   public void getDatabaseMappings() {
-    List<DatabaseMapping> databaseMappings = Arrays.asList(primaryMapping, otherMapping);
+    List<CatalogMapping> databaseMappings = Arrays.asList(primaryMapping, otherMapping);
     when(wrapped.getDatabaseMappings()).thenReturn(databaseMappings);
     assertThat(service.getDatabaseMappings(), is(databaseMappings));
   }

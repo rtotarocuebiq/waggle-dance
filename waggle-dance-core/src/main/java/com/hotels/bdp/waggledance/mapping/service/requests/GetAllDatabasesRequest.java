@@ -20,16 +20,16 @@ import java.util.function.BiFunction;
 
 import org.apache.thrift.TException;
 
-import com.hotels.bdp.waggledance.mapping.model.DatabaseMapping;
+import com.hotels.bdp.waggledance.mapping.model.CatalogMapping;
 
 public class GetAllDatabasesRequest implements RequestCallable<List<String>> {
 
-  private final DatabaseMapping mapping;
-  private final BiFunction<List<String>, DatabaseMapping, List<String>> filter;
+  private final CatalogMapping mapping;
+  private final BiFunction<List<String>, CatalogMapping, List<String>> filter;
 
   public GetAllDatabasesRequest(
-      DatabaseMapping mapping,
-      BiFunction<List<String>, DatabaseMapping, List<String>> filter) {
+      CatalogMapping mapping,
+      BiFunction<List<String>, CatalogMapping, List<String>> filter) {
     this.mapping = mapping;
     this.filter = filter;
   }
@@ -41,7 +41,7 @@ public class GetAllDatabasesRequest implements RequestCallable<List<String>> {
   }
 
   @Override
-  public DatabaseMapping getMapping() {
+  public CatalogMapping getMapping() {
     return mapping;
   }
 }

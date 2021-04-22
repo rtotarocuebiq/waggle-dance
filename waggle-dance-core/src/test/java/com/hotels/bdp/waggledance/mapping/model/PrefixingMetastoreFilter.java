@@ -19,14 +19,15 @@ import java.util.List;
 
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.metastore.MetaStoreFilterHook;
+import org.apache.hadoop.hive.metastore.api.Catalog;
 import org.apache.hadoop.hive.metastore.api.Database;
-import org.apache.hadoop.hive.metastore.api.Index;
 import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.hadoop.hive.metastore.api.NoSuchObjectException;
 import org.apache.hadoop.hive.metastore.api.Partition;
 import org.apache.hadoop.hive.metastore.api.PartitionSpec;
 import org.apache.hadoop.hive.metastore.api.StorageDescriptor;
 import org.apache.hadoop.hive.metastore.api.Table;
+import org.apache.hadoop.hive.metastore.api.TableMeta;
 
 /**
  * For testing purposes
@@ -49,9 +50,10 @@ public class PrefixingMetastoreFilter implements MetaStoreFilterHook {
   }
 
   @Override
-  public List<String> filterTableNames(String dbName, List<String> tableList) throws MetaException {
+  public List<String> filterTableNames(String catalog, String dbName, List<String> tableList) throws MetaException {
     return tableList;
   }
+
 
   @Override
   public Table filterTable(Table table) throws MetaException, NoSuchObjectException {
@@ -91,29 +93,11 @@ public class PrefixingMetastoreFilter implements MetaStoreFilterHook {
   }
 
   @Override
-  public List<String> filterPartitionNames(String dbName, String tblName,
+  public List<String> filterPartitionNames(String catalog, String dbName, String tblName,
       List<String> partitionNames) throws MetaException {
     return partitionNames;
   }
 
-  @Override
-  public Index filterIndex(Index index) throws MetaException, NoSuchObjectException {
-    setLocationPrefix(index.getSd());
-    return index;
-  }
-
-  @Override
-  public List<String> filterIndexNames(String dbName, String tblName, List<String> indexList) throws MetaException {
-    return indexList;
-  }
-
-  @Override
-  public List<Index> filterIndexes(List<Index> indexeList) throws MetaException {
-    for (Index index: indexeList) {
-      setLocationPrefix(index.getSd());
-    }
-    return indexeList;
-  }
 
   private void setLocationPrefix(Table table) {
     setLocationPrefix(table.getSd());
@@ -128,4 +112,24 @@ public class PrefixingMetastoreFilter implements MetaStoreFilterHook {
     sd.setLocation(PREFIX + location);
   }
 
+  @Override
+  public List<TableMeta> filterTableMetas(List<TableMeta> tableMetas)
+          throws MetaException
+  {
+    return tableMetas;
+  }
+
+  @Override
+  public Catalog filterCatalog(Catalog catalog)
+          throws MetaException
+  {
+    return catalog;
+  }
+
+  @Override
+  public List<String> filterCatalogs(List<String> catalogs)
+          throws MetaException
+  {
+    return catalogs;
+  }
 }

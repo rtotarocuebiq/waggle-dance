@@ -20,6 +20,7 @@ import java.util.List;
 
 import org.apache.hadoop.hive.metastore.MetaStoreFilterHook;
 import org.apache.hadoop.hive.metastore.api.AlreadyExistsException;
+import org.apache.hadoop.hive.metastore.api.Catalog;
 import org.apache.hadoop.hive.metastore.api.Database;
 import org.apache.hadoop.hive.metastore.api.InvalidObjectException;
 import org.apache.hadoop.hive.metastore.api.MetaException;
@@ -33,48 +34,50 @@ public interface MetaStoreMapping extends Closeable {
   /**
    * Outbound means parameter coming from the Hive Metastore and return result will be sent to user client.
    *
-   * @param databaseName, (return the first matching in case of multiple names). To get the full list please use
-   *          {@link #transformOutboundDatabaseNameMultiple(String)}
+   * @param catalogName, (return the first matching in case of multiple names). To get the full list please use
+   *          {@link #transformOutboundCatalogNameMultiple(String)}
    * @return
    */
-  String transformOutboundDatabaseName(String databaseName);
+  String transformOutboundCatalogName(String catalogName);
 
   /**
    * Outbound means parameter coming from the Hive Metastore and return result will be sent to user client.
    *
-   * @param databaseName
+   * @param catalogName
    * @return List of databaseNames. This method potentially returns multiple database names if configuration is set up to
    *    *          map to multiple.
    */
-  List<String> transformOutboundDatabaseNameMultiple(String databaseName);
+  List<String> transformOutboundCatalogNameMultiple(String catalogName);
 
-  Database transformOutboundDatabase(Database database);
+  Catalog transformOutboundCatalog(Catalog catalog);
 
   /**
    * Inbound means parameter coming from the user client and return result will be sent to Hive Metastore.
    *
-   * @param databaseName
+   * @param catalogName
    * @return
    */
-  String transformInboundDatabaseName(String databaseName);
+  String transformInboundCatalogName(String catalogName);
+
 
   ThriftHiveMetastore.Iface getClient();
 
    MetaStoreFilterHook getMetastoreFilter();
 
-  String getDatabasePrefix();
+  String getCatalogPrefix();
 
   String getMetastoreMappingName();
 
   boolean isAvailable();
 
   /**
+   * @param catalog
    * @param databaseName (assumed to be the database name used in this mapped metastore so any waggle dance related
    *          prefix must have been stripped already)
    * @return this, throws {@link NotAllowedException} when the Metastore mapped by this class does not have write
    *         permissions for the database
    */
-  MetaStoreMapping checkWritePermissions(String databaseName);
+  MetaStoreMapping checkWritePermissions(String catalog, String databaseName);
 
   /**
    * @param database (assumed to be the database used in this mapped metastore so any waggle dance related prefix must

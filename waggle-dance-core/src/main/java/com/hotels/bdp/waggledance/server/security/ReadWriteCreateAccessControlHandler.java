@@ -21,6 +21,7 @@ import java.util.List;
 import com.hotels.bdp.waggledance.api.WaggleDanceException;
 import com.hotels.bdp.waggledance.api.federation.service.FederationService;
 import com.hotels.bdp.waggledance.api.model.AbstractMetaStore;
+import com.hotels.bdp.waggledance.api.model.MappedDbs;
 import com.hotels.bdp.waggledance.api.model.PrimaryMetaStore;
 
 public class ReadWriteCreateAccessControlHandler implements AccessControlHandler {
@@ -35,7 +36,7 @@ public class ReadWriteCreateAccessControlHandler implements AccessControlHandler
   }
 
   @Override
-  public boolean hasWritePermission(String databaseName) {
+  public boolean hasWritePermission(String catalog, String databaseName) {
     return true;
   }
 
@@ -45,13 +46,13 @@ public class ReadWriteCreateAccessControlHandler implements AccessControlHandler
   }
 
   @Override
-  public void databaseCreatedNotification(String name) {
+  public void databaseCreatedNotification(String catalog, String name) {
     // Notify to update mapped databases
-    List<String> mappedDatabases = null;
+    List<MappedDbs> mappedDatabases = null;
     if (metaStore.getMappedDatabases() != null) {
       mappedDatabases = new ArrayList<>(metaStore.getMappedDatabases());
       if (!mappedDatabases.contains(name)) {
-        mappedDatabases.add(name);
+        mappedDatabases.add(new MappedDbs(catalog,name));
       }
     }
 

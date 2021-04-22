@@ -204,7 +204,7 @@ public class WaggleDanceRunner implements WaggleDance.ContextListener {
     }
 
     public Builder withPrimaryPrefix(String prefix) {
-      primaryMetaStore.setDatabasePrefix(prefix);
+      primaryMetaStore.setCatalogPrefix(prefix);
       return this;
     }
 

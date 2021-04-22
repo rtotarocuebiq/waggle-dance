@@ -21,6 +21,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertNotEquals;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -156,10 +157,9 @@ public abstract class AbstractMetaStoreTest<T extends AbstractMetaStore> {
 
   @Test
   public void mappedDatabases() {
-    List<String> mappedDatabases = new ArrayList<>();
-    mappedDatabases.add("database");
-    metaStore.setMappedDatabases(mappedDatabases);
-    assertThat(metaStore.getMappedDatabases(), is(mappedDatabases));
+    MappedDbs mappedDbs = new MappedDbs("default","database");
+    metaStore.setMappedDatabases(Arrays.asList(mappedDbs));
+    assertThat(metaStore.getMappedDatabases(), is(mappedDbs));
   }
 
   @Test
@@ -176,8 +176,8 @@ public abstract class AbstractMetaStoreTest<T extends AbstractMetaStore> {
 
   @Test
   public void mappedTables() {
-    MappedTables mappedTables1 = new MappedTables("db1", Lists.newArrayList("tbl1"));
-    MappedTables mappedTables2 = new MappedTables("db2", Lists.newArrayList("tbl2"));
+    MappedTables mappedTables1 = new MappedTables("cat1","db1", Lists.newArrayList("tbl1"));
+    MappedTables mappedTables2 = new MappedTables("cat1","db2", Lists.newArrayList("tbl2"));
     List<MappedTables> mappedTables = Lists.newArrayList(mappedTables1, mappedTables2);
     metaStore.setMappedTables(mappedTables);
     assertThat(metaStore.getMappedTables(), is(mappedTables));
@@ -188,7 +188,7 @@ public abstract class AbstractMetaStoreTest<T extends AbstractMetaStore> {
 
   @Test
   public void mappedTablesEmptyDbInvalid() {
-    MappedTables mappedTables = new MappedTables("", Lists.newArrayList("tbl1"));
+    MappedTables mappedTables = new MappedTables("cat1","", Lists.newArrayList("tbl1"));
     metaStore.setMappedTables(Lists.newArrayList(mappedTables));
 
     Set<ConstraintViolation<T>> violations = validator.validate(metaStore);
@@ -197,7 +197,7 @@ public abstract class AbstractMetaStoreTest<T extends AbstractMetaStore> {
 
   @Test
   public void mappedTablesNullDbInvalid() {
-    MappedTables mappedTables = new MappedTables(null, Lists.newArrayList("tbl1"));
+    MappedTables mappedTables = new MappedTables("",null, Lists.newArrayList("tbl1"));
     metaStore.setMappedTables(Lists.newArrayList(mappedTables));
 
     Set<ConstraintViolation<T>> violations = validator.validate(metaStore);
@@ -215,7 +215,7 @@ public abstract class AbstractMetaStoreTest<T extends AbstractMetaStore> {
 
   @Test
   public void mappedTablesEmptyTblsInvalid() {
-    MappedTables mappedTables = new MappedTables("valid_db", Lists.newArrayList());
+    MappedTables mappedTables = new MappedTables("","valid_db", Lists.newArrayList());
     metaStore.setMappedTables(Lists.newArrayList(mappedTables));
 
     Set<ConstraintViolation<T>> violations = validator.validate(metaStore);

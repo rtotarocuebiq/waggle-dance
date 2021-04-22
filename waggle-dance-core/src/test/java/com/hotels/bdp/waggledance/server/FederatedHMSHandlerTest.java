@@ -141,7 +141,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import com.facebook.fb303.fb_status;
 import com.google.common.collect.Lists;
 
-import com.hotels.bdp.waggledance.mapping.model.DatabaseMapping;
+import com.hotels.bdp.waggledance.mapping.model.CatalogMapping;
 import com.hotels.bdp.waggledance.mapping.service.MappingEventListener;
 import com.hotels.bdp.waggledance.mapping.service.PanopticOperationHandler;
 import com.hotels.bdp.waggledance.mapping.service.impl.NotifyingFederationService;
@@ -154,7 +154,7 @@ public class FederatedHMSHandlerTest {
 
   private @Mock MappingEventListener databaseMappingService;
   private @Mock NotifyingFederationService notifyingFederationService;
-  private @Mock DatabaseMapping primaryMapping;
+  private @Mock CatalogMapping primaryMapping;
   private @Mock Iface primaryClient;
 
   private FederatedHMSHandler handler;
@@ -831,8 +831,8 @@ public class FederatedHMSHandlerTest {
   public void get_all_functions() throws TException {
     PanopticOperationHandler panopticHandler = Mockito.mock(PanopticOperationHandler.class);
     when(databaseMappingService.getPanopticOperationHandler()).thenReturn(panopticHandler);
-    DatabaseMapping mapping = Mockito.mock(DatabaseMapping.class);
-    List<DatabaseMapping> mappings = Lists.newArrayList(mapping);
+    CatalogMapping mapping = Mockito.mock(CatalogMapping.class);
+    List<CatalogMapping> mappings = Lists.newArrayList(mapping);
     when(databaseMappingService.getDatabaseMappings()).thenReturn(mappings);
     GetAllFunctionsResponse getAllFunctionsResponse = Mockito.mock(GetAllFunctionsResponse.class);
     when(panopticHandler.getAllFunctions(mappings)).thenReturn(getAllFunctionsResponse);

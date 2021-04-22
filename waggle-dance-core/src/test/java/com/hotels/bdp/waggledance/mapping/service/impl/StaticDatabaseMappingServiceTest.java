@@ -57,8 +57,8 @@ import com.hotels.bdp.waggledance.api.model.AbstractMetaStore;
 import com.hotels.bdp.waggledance.api.model.FederatedMetaStore;
 import com.hotels.bdp.waggledance.api.model.MappedTables;
 import com.hotels.bdp.waggledance.api.model.PrimaryMetaStore;
-import com.hotels.bdp.waggledance.mapping.model.DatabaseMapping;
-import com.hotels.bdp.waggledance.mapping.model.DatabaseMappingImpl;
+import com.hotels.bdp.waggledance.mapping.model.CatalogMapping;
+import com.hotels.bdp.waggledance.mapping.model.CatalogMappingImpl;
 import com.hotels.bdp.waggledance.mapping.model.MetaStoreMapping;
 import com.hotels.bdp.waggledance.mapping.model.QueryMapping;
 import com.hotels.bdp.waggledance.mapping.service.MetaStoreMappingFactory;
@@ -135,9 +135,9 @@ public class StaticDatabaseMappingServiceTest {
 
   @Test
   public void databaseMappingPrimary() throws NoSuchObjectException {
-    DatabaseMapping databaseMapping = service.databaseMapping(PRIMARY_DB);
+    CatalogMapping databaseMapping = service.databaseMapping(PRIMARY_DB);
     assertThat(databaseMapping.getMetastoreMappingName(), is(PRIMARY_NAME));
-    assertTrue(databaseMapping instanceof DatabaseMappingImpl);
+    assertTrue(databaseMapping instanceof CatalogMappingImpl);
   }
 
   @Test(expected = NoSuchObjectException.class)
@@ -148,9 +148,9 @@ public class StaticDatabaseMappingServiceTest {
   @Test
   public void databaseMappingFederated() throws NoSuchObjectException {
     service.databaseMapping(FEDERATED_DB);
-    DatabaseMapping databaseMapping = service.databaseMapping(FEDERATED_DB);
+    CatalogMapping databaseMapping = service.databaseMapping(FEDERATED_DB);
     assertThat(databaseMapping.getMetastoreMappingName(), is(FEDERATED_NAME));
-    assertTrue(databaseMapping instanceof DatabaseMappingImpl);
+    assertTrue(databaseMapping instanceof CatalogMappingImpl);
   }
 
   @Test(expected = WaggleDanceException.class)
@@ -204,9 +204,9 @@ public class StaticDatabaseMappingServiceTest {
   public void onRegister() throws TException {
     FederatedMetaStore newMetastore = newFederatedInstanceWithClient("fed1", "abc", Lists.newArrayList("db1"), true);
     service.onRegister(newMetastore);
-    DatabaseMapping databaseMapping = service.databaseMapping("db1");
+    CatalogMapping databaseMapping = service.databaseMapping("db1");
     assertThat(databaseMapping.getMetastoreMappingName(), is("fed1"));
-    assertTrue(databaseMapping instanceof DatabaseMappingImpl);
+    assertTrue(databaseMapping instanceof CatalogMappingImpl);
   }
 
   @Test(expected = WaggleDanceException.class)
@@ -227,12 +227,12 @@ public class StaticDatabaseMappingServiceTest {
         Lists.newArrayList("db1", "federated_DB"), true);
     service.onUpdate(federatedMetastore, newMetastore);
 
-    DatabaseMapping databaseMapping = service.databaseMapping("db1");
+    CatalogMapping databaseMapping = service.databaseMapping("db1");
     assertThat(databaseMapping.getMetastoreMappingName(), is(FEDERATED_NAME));
-    assertTrue(databaseMapping instanceof DatabaseMappingImpl);
+    assertTrue(databaseMapping instanceof CatalogMappingImpl);
     databaseMapping = service.databaseMapping(FEDERATED_DB);
     assertThat(databaseMapping.getMetastoreMappingName(), is(FEDERATED_NAME));
-    assertTrue(databaseMapping instanceof DatabaseMappingImpl);
+    assertTrue(databaseMapping instanceof CatalogMappingImpl);
   }
 
   @Test
@@ -246,9 +246,9 @@ public class StaticDatabaseMappingServiceTest {
 
     service.onUpdate(primaryMetastore, newMetastore);
 
-    DatabaseMapping databaseMapping = service.databaseMapping(PRIMARY_DB);
+    CatalogMapping databaseMapping = service.databaseMapping(PRIMARY_DB);
     assertThat(databaseMapping.getMetastoreMappingName(), is("newPrimary"));
-    assertTrue(databaseMapping instanceof DatabaseMappingImpl);
+    assertTrue(databaseMapping instanceof CatalogMappingImpl);
 
     // unchanged
     databaseMapping = service.databaseMapping(FEDERATED_DB);
@@ -262,9 +262,9 @@ public class StaticDatabaseMappingServiceTest {
 
     service.onUpdate(federatedMetastore, newMetastore);
 
-    DatabaseMapping databaseMapping = service.databaseMapping(FEDERATED_DB);
+    CatalogMapping databaseMapping = service.databaseMapping(FEDERATED_DB);
     assertThat(databaseMapping.getMetastoreMappingName(), is(newName));
-    assertTrue(databaseMapping instanceof DatabaseMappingImpl);
+    assertTrue(databaseMapping instanceof CatalogMappingImpl);
   }
 
   @Test(expected = WaggleDanceException.class)
@@ -298,7 +298,7 @@ public class StaticDatabaseMappingServiceTest {
 
   @Test
   public void primaryDatabaseMapping() {
-    DatabaseMapping mapping = service.primaryDatabaseMapping();
+    CatalogMapping mapping = service.primaryDatabaseMapping();
     assertThat(mapping.getClient(), is(primaryDatabaseClient));
   }
 
@@ -386,7 +386,7 @@ public class StaticDatabaseMappingServiceTest {
     primaryMetastore.setMappedTables(Collections.emptyList());
     service = new StaticDatabaseMappingService(metaStoreMappingFactory,
         Arrays.asList(primaryMetastore, federatedMetastore), queryMapping);
-    DatabaseMapping mapping = service.databaseMapping(PRIMARY_DB);
+    CatalogMapping mapping = service.databaseMapping(PRIMARY_DB);
     service.checkTableAllowed(PRIMARY_DB, "table", mapping);
   }
 
@@ -555,7 +555,7 @@ public class StaticDatabaseMappingServiceTest {
     when(federatedDatabaseClient.set_ugi(user, groups)).thenReturn(Lists.newArrayList("ugi", "ugi2"));
 
     PanopticOperationHandler handler = service.getPanopticOperationHandler();
-    List<DatabaseMapping> databaseMappings = service.getDatabaseMappings();
+    List<CatalogMapping> databaseMappings = service.getDatabaseMappings();
     List<String> result = handler.setUgi(user, groups, databaseMappings);
     assertThat(result, is(Arrays.asList("ugi", "ugi2")));
   }

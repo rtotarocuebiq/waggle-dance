@@ -22,33 +22,33 @@ import javax.validation.constraints.NotNull;
 
 import org.apache.hadoop.hive.metastore.api.NoSuchObjectException;
 
-import com.hotels.bdp.waggledance.mapping.model.DatabaseMapping;
+import com.hotels.bdp.waggledance.mapping.model.CatalogMapping;
 
 public interface DatabaseMappingService extends Closeable {
 
   /**
-   * @return the {@link DatabaseMapping} that maps to the primary metastore
+   * @return the {@link CatalogMapping} that maps to the primary metastore
    */
-  DatabaseMapping primaryDatabaseMapping();
+  CatalogMapping primaryDatabaseMapping();
 
   /**
    * @param databaseName given database name
-   * @return the {@link DatabaseMapping} that maps to the given databaseName
+   * @return the {@link CatalogMapping} that maps to the given databaseName
    */
-  DatabaseMapping databaseMapping(@NotNull String databaseName) throws NoSuchObjectException;
+  CatalogMapping databaseMapping(@NotNull String databaseName) throws NoSuchObjectException;
 
   /**
    * Checks that the table from the specified database is allowed and throws a {@link NoSuchObjectException} if not.
    */
-  void checkTableAllowed(String databaseName, String tableName,
-      DatabaseMapping mapping) throws NoSuchObjectException;
+  void checkTableAllowed(String catalog, String databaseName, String tableName,
+      CatalogMapping mapping) throws NoSuchObjectException;
 
   /**
    * Filters out the tables which are not allowed and returns the rest.
    */
-  List<String> filterTables(String databaseName, List<String> tableNames, DatabaseMapping mapping);
+  List<String> filterTables(String catalog, String databaseName, List<String> tableNames, CatalogMapping mapping);
 
   PanopticOperationHandler getPanopticOperationHandler();
 
-  List<DatabaseMapping> getDatabaseMappings();
+  List<CatalogMapping> getDatabaseMappings();
 }

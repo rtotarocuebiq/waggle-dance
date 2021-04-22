@@ -23,7 +23,7 @@ import javax.validation.constraints.NotNull;
 import org.apache.hadoop.hive.metastore.api.NoSuchObjectException;
 
 import com.hotels.bdp.waggledance.api.model.AbstractMetaStore;
-import com.hotels.bdp.waggledance.mapping.model.DatabaseMapping;
+import com.hotels.bdp.waggledance.mapping.model.CatalogMapping;
 import com.hotels.bdp.waggledance.mapping.service.MappingEventListener;
 import com.hotels.bdp.waggledance.mapping.service.PanopticOperationHandler;
 import com.hotels.bdp.waggledance.metrics.CurrentMonitoredMetaStoreHolder;
@@ -37,28 +37,28 @@ public class MonitoredDatabaseMappingService implements MappingEventListener {
   }
 
   @Override
-  public DatabaseMapping primaryDatabaseMapping() {
-    DatabaseMapping primaryDatabaseMapping = wrapped.primaryDatabaseMapping();
+  public CatalogMapping primaryDatabaseMapping() {
+    CatalogMapping primaryDatabaseMapping = wrapped.primaryDatabaseMapping();
     CurrentMonitoredMetaStoreHolder.monitorMetastore(primaryDatabaseMapping.getMetastoreMappingName());
     return primaryDatabaseMapping;
   }
 
   @Override
-  public DatabaseMapping databaseMapping(@NotNull String databaseName) throws NoSuchObjectException {
-    DatabaseMapping databaseMapping = wrapped.databaseMapping(databaseName);
+  public CatalogMapping databaseMapping(@NotNull String databaseName) throws NoSuchObjectException {
+    CatalogMapping databaseMapping = wrapped.databaseMapping(databaseName);
     CurrentMonitoredMetaStoreHolder.monitorMetastore(databaseMapping.getMetastoreMappingName());
     return databaseMapping;
   }
 
   @Override
-  public void checkTableAllowed(String databaseName, String tableName,
-      DatabaseMapping mapping) throws NoSuchObjectException {
-      wrapped.checkTableAllowed(databaseName, tableName, mapping);
+  public void checkTableAllowed(String catalog, String databaseName, String tableName,
+      CatalogMapping mapping) throws NoSuchObjectException {
+      wrapped.checkTableAllowed(catalog, databaseName, tableName, mapping);
     }
 
   @Override
-  public List<String> filterTables(String databaseName, List<String> tableNames, DatabaseMapping mapping) {
-    return wrapped.filterTables(databaseName, tableNames, mapping);
+  public List<String> filterTables(String catalog, String databaseName, List<String> tableNames, CatalogMapping mapping) {
+    return wrapped.filterTables(catalog, databaseName, tableNames, mapping);
   }
 
   @Override
@@ -69,7 +69,7 @@ public class MonitoredDatabaseMappingService implements MappingEventListener {
   }
 
   @Override
-  public List<DatabaseMapping> getDatabaseMappings() {
+  public List<CatalogMapping> getDatabaseMappings() {
     return wrapped.getDatabaseMappings();
   }
 

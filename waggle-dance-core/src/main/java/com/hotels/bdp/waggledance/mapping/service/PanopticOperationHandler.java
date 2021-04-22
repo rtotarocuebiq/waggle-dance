@@ -28,7 +28,7 @@ import org.apache.hadoop.hive.metastore.HiveMetaStore.HMSHandler;
 import org.apache.hadoop.hive.metastore.api.GetAllFunctionsResponse;
 import org.apache.hadoop.hive.metastore.api.TableMeta;
 
-import com.hotels.bdp.waggledance.mapping.model.DatabaseMapping;
+import com.hotels.bdp.waggledance.mapping.model.CatalogMapping;
 import com.hotels.bdp.waggledance.mapping.service.requests.GetAllDatabasesByPatternRequest;
 import com.hotels.bdp.waggledance.mapping.service.requests.GetAllFunctionsRequest;
 import com.hotels.bdp.waggledance.mapping.service.requests.GetTableMetaRequest;
@@ -62,12 +62,12 @@ public abstract class PanopticOperationHandler {
   public abstract List<String> getAllDatabases(String databasePattern);
 
   protected List<String> getAllDatabases(
-      Map<DatabaseMapping, String> databaseMappingsForPattern,
-      BiFunction<String, DatabaseMapping, Boolean> filter) {
+      Map<CatalogMapping, String> databaseMappingsForPattern,
+      BiFunction<String, CatalogMapping, Boolean> filter) {
     List<GetAllDatabasesByPatternRequest> allRequests = new ArrayList<>();
 
-    for (Entry<DatabaseMapping, String> mappingWithPattern : databaseMappingsForPattern.entrySet()) {
-      DatabaseMapping mapping = mappingWithPattern.getKey();
+    for (Entry<CatalogMapping, String> mappingWithPattern : databaseMappingsForPattern.entrySet()) {
+      CatalogMapping mapping = mappingWithPattern.getKey();
       GetAllDatabasesByPatternRequest databasesByPatternRequest = new GetAllDatabasesByPatternRequest(mapping,
           mappingWithPattern.getValue(), filter);
       allRequests.add(databasesByPatternRequest);
@@ -90,12 +90,12 @@ public abstract class PanopticOperationHandler {
   protected List<TableMeta> getTableMeta(
       String tablePatterns,
       List<String> tableTypes,
-      Map<DatabaseMapping, String> databaseMappingsForPattern,
-      BiFunction<TableMeta, DatabaseMapping, Boolean> filter) {
+      Map<CatalogMapping, String> databaseMappingsForPattern,
+      BiFunction<TableMeta, CatalogMapping, Boolean> filter) {
     List<GetTableMetaRequest> allRequests = new ArrayList<>();
 
-    for (Entry<DatabaseMapping, String> mappingWithPattern : databaseMappingsForPattern.entrySet()) {
-      DatabaseMapping mapping = mappingWithPattern.getKey();
+    for (Entry<CatalogMapping, String> mappingWithPattern : databaseMappingsForPattern.entrySet()) {
+      CatalogMapping mapping = mappingWithPattern.getKey();
       GetTableMetaRequest tableMetaRequest = new GetTableMetaRequest(mapping, mappingWithPattern.getValue(),
           tablePatterns, tableTypes, filter);
       allRequests.add(tableMetaRequest);
@@ -113,12 +113,12 @@ public abstract class PanopticOperationHandler {
    * @param group_names group names
    * @return list
    */
-  public List<String> setUgi(String user_name, List<String> group_names, List<DatabaseMapping> databaseMappings) {
+  public List<String> setUgi(String user_name, List<String> group_names, List<CatalogMapping> databaseMappings) {
     // set_ugi returns the user_name that was set (on EMR at least) we just combine them all to avoid duplicates.
     // Not sure if anything uses these results. We're assuming the order doesn't matter.
     List<SetUgiRequest> allRequests = new ArrayList<>();
 
-    for (DatabaseMapping mapping : databaseMappings) {
+    for (CatalogMapping mapping : databaseMappings) {
       SetUgiRequest setUgiRequest = new SetUgiRequest(mapping, user_name, group_names);
       allRequests.add(setUgiRequest);
     }
@@ -134,10 +134,10 @@ public abstract class PanopticOperationHandler {
    *
    * @return GetAllFunctionsResponse (db's from federated metastores will be prefixed if necessary)
    */
-  public GetAllFunctionsResponse getAllFunctions(List<DatabaseMapping> databaseMappings) {
+  public GetAllFunctionsResponse getAllFunctions(List<CatalogMapping> databaseMappings) {
     List<GetAllFunctionsRequest> allRequests = new ArrayList<>();
 
-    for (DatabaseMapping mapping : databaseMappings) {
+    for (CatalogMapping mapping : databaseMappings) {
       GetAllFunctionsRequest getAllFunctionsRequest = new GetAllFunctionsRequest(mapping);
       allRequests.add(getAllFunctionsRequest);
     }

@@ -24,7 +24,7 @@ public class LowerCasePrefixNamingStrategy implements PrefixNamingStrategy {
 
   @Override
   public String apply(AbstractMetaStore federatedMetaStore) {
-    return federatedMetaStore.getDatabasePrefix().toLowerCase(Locale.ROOT);
+    return federatedMetaStore.getCatalogPrefix().toLowerCase(Locale.ROOT);
   }
 
 }

@@ -22,6 +22,7 @@ import java.util.Locale;
 
 import org.apache.hadoop.hive.metastore.MetaStoreFilterHook;
 import org.apache.hadoop.hive.metastore.api.AlreadyExistsException;
+import org.apache.hadoop.hive.metastore.api.Catalog;
 import org.apache.hadoop.hive.metastore.api.Database;
 import org.apache.hadoop.hive.metastore.api.InvalidObjectException;
 import org.apache.hadoop.hive.metastore.api.MetaException;
@@ -39,7 +40,7 @@ class MetaStoreMappingImpl implements MetaStoreMapping {
 
   private final static Logger log = LoggerFactory.getLogger(MetaStoreMappingImpl.class);
 
-  private final String databasePrefix;
+  private final String catalogPrefix;
   private final CloseableThriftHiveMetastoreIface client;
   private final AccessControlHandler accessControlHandler;
   private final String name;
@@ -56,7 +57,7 @@ class MetaStoreMappingImpl implements MetaStoreMapping {
       ConnectionType connectionType,
       long latency,
       MetaStoreFilterHook metastoreFilter) {
-    this.databasePrefix = databasePrefix;
+    this.catalogPrefix = databasePrefix;
     this.name = name;
     this.client = client;
     this.accessControlHandler = accessControlHandler;
@@ -66,13 +67,13 @@ class MetaStoreMappingImpl implements MetaStoreMapping {
   }
 
   @Override
-  public String transformOutboundDatabaseName(String databaseName) {
-    return databaseName.toLowerCase(Locale.ROOT);
+  public String transformOutboundCatalogName(String catalogName) {
+    return catalogName.toLowerCase(Locale.ROOT);
   }
 
   @Override
-  public List<String> transformOutboundDatabaseNameMultiple(String databaseName) {
-    return Collections.singletonList(transformInboundDatabaseName(databaseName));
+  public List<String> transformOutboundCatalogNameMultiple(String catalogName) {
+    return Collections.singletonList(transformInboundCatalogName(catalogName));
   }
 
   @Override
@@ -86,19 +87,19 @@ class MetaStoreMappingImpl implements MetaStoreMapping {
   }
 
   @Override
-  public Database transformOutboundDatabase(Database database) {
-    database.setName(transformOutboundDatabaseName(database.getName()));
-    return database;
+  public Catalog transformOutboundCatalog(Catalog catalog) {
+    catalog.setName(transformInboundCatalogName(catalog.getName()));
+    return catalog;
   }
 
   @Override
-  public String transformInboundDatabaseName(String databaseName) {
-    return databaseName.toLowerCase(Locale.ROOT);
+  public String transformInboundCatalogName(String catalogName) {
+    return catalogName.toLowerCase(Locale.ROOT);
   }
 
   @Override
-  public String getDatabasePrefix() {
-    return databasePrefix;
+  public String getCatalogPrefix() {
+    return catalogPrefix;
   }
 
   @Override
@@ -121,8 +122,8 @@ class MetaStoreMappingImpl implements MetaStoreMapping {
   }
 
   @Override
-  public MetaStoreMapping checkWritePermissions(String databaseName) {
-    if (!accessControlHandler.hasWritePermission(databaseName)) {
+  public MetaStoreMapping checkWritePermissions(String catalog, String databaseName) {
+    if (!accessControlHandler.hasWritePermission(catalog, databaseName)) {
       throw new NotAllowedException(
           "You cannot perform this operation on the virtual database '" + databaseName + "'.");
     }
@@ -134,7 +135,7 @@ class MetaStoreMappingImpl implements MetaStoreMapping {
     throws AlreadyExistsException, InvalidObjectException, MetaException, TException {
     if (accessControlHandler.hasCreatePermission()) {
       getClient().create_database(database);
-      accessControlHandler.databaseCreatedNotification(database.getName());
+      accessControlHandler.databaseCreatedNotification(database.getCatalogName(),database.getName());
     } else {
       throw new NotAllowedException("You cannot create the database '" + database.getName() + "'.");
     }

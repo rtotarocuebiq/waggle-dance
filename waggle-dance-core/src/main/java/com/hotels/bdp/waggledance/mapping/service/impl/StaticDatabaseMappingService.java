@@ -54,8 +54,8 @@ import com.hotels.bdp.waggledance.api.WaggleDanceException;
 import com.hotels.bdp.waggledance.api.model.AbstractMetaStore;
 import com.hotels.bdp.waggledance.api.model.FederationType;
 import com.hotels.bdp.waggledance.api.model.MappedTables;
-import com.hotels.bdp.waggledance.mapping.model.DatabaseMapping;
-import com.hotels.bdp.waggledance.mapping.model.DatabaseMappingImpl;
+import com.hotels.bdp.waggledance.mapping.model.CatalogMapping;
+import com.hotels.bdp.waggledance.mapping.model.CatalogMappingImpl;
 import com.hotels.bdp.waggledance.mapping.model.MetaStoreMapping;
 import com.hotels.bdp.waggledance.mapping.model.QueryMapping;
 import com.hotels.bdp.waggledance.mapping.service.MappingEventListener;
@@ -73,11 +73,11 @@ public class StaticDatabaseMappingService implements MappingEventListener {
   private static final String PRIMARY_KEY = "";
   private final MetaStoreMappingFactory metaStoreMappingFactory;
   private final LoadingCache<String, List<String>> primaryDatabasesCache;
-  private final Map<String, DatabaseMapping> mappingsByMetaStoreName;
-  private final Map<String, DatabaseMapping> mappingsByDatabaseName;
+  private final Map<String, CatalogMapping> mappingsByMetaStoreName;
+  private final Map<String, CatalogMapping> mappingsByDatabaseName;
   private final Map<String, List<String>> databaseMappingToDatabaseList;
   private final Map<String, AllowList> databaseToTableAllowList;
-  private DatabaseMapping primaryDatabaseMapping;
+  private CatalogMapping primaryDatabaseMapping;
   private final QueryMapping queryMapping;
 
   public StaticDatabaseMappingService(
@@ -124,10 +124,10 @@ public class StaticDatabaseMappingService implements MappingEventListener {
         LOG.error("Could not get databases for metastore {}", metaStore.getRemoteMetaStoreUris(), e);
       }
     }
-    DatabaseMapping databaseMapping = createDatabaseMapping(metaStoreMapping);
+    CatalogMapping databaseMapping = createDatabaseMapping(metaStoreMapping);
     mappableDatabases = mappableDatabases
         .stream()
-        .flatMap(n -> databaseMapping.transformOutboundDatabaseNameMultiple(n).stream())
+        .flatMap(n -> databaseMapping.transformOutboundCatalogNameMultiple(n).stream())
         .collect(toList());
     validateMappableDatabases(mappableDatabases, metaStore);
 
@@ -206,7 +206,7 @@ public class StaticDatabaseMappingService implements MappingEventListener {
     return matchedDatabases;
   }
 
-  private void addDatabaseMappings(List<String> databases, DatabaseMapping databaseMapping) {
+  private void addDatabaseMappings(List<String> databases, CatalogMapping databaseMapping) {
     for (String databaseName : databases) {
       mappingsByDatabaseName.put(databaseName, databaseMapping);
     }
@@ -222,8 +222,8 @@ public class StaticDatabaseMappingService implements MappingEventListener {
     }
   }
 
-  private DatabaseMapping createDatabaseMapping(MetaStoreMapping metaStoreMapping) {
-    return new DatabaseMappingImpl(metaStoreMapping, queryMapping);
+  private CatalogMapping createDatabaseMapping(MetaStoreMapping metaStoreMapping) {
+    return new CatalogMappingImpl(metaStoreMapping, queryMapping);
   }
 
   private void remove(AbstractMetaStore metaStore) {
@@ -232,7 +232,7 @@ public class StaticDatabaseMappingService implements MappingEventListener {
       primaryDatabasesCache.invalidateAll();
     }
 
-    DatabaseMapping removed = mappingsByMetaStoreName.remove(metaStore.getName());
+    CatalogMapping removed = mappingsByMetaStoreName.remove(metaStore.getName());
     String mappingName = removed.getMetastoreMappingName();
     List<String> databasesToRemove = databaseMappingToDatabaseList.get(mappingName);
     databaseMappingToDatabaseList.remove(mappingName);
@@ -279,7 +279,7 @@ public class StaticDatabaseMappingService implements MappingEventListener {
   }
 
   @Override
-  public DatabaseMapping primaryDatabaseMapping() {
+  public CatalogMapping primaryDatabaseMapping() {
     if (primaryDatabaseMapping == null) {
       throw new NoPrimaryMetastoreException("Waggle Dance error no primary database mapping available");
     }
@@ -291,8 +291,8 @@ public class StaticDatabaseMappingService implements MappingEventListener {
   }
 
   @Override
-  public DatabaseMapping databaseMapping(@NotNull String databaseName) throws NoSuchObjectException {
-    DatabaseMapping databaseMapping = mappingsByDatabaseName.get(databaseName.toLowerCase(Locale.ROOT));
+  public CatalogMapping databaseMapping(@NotNull String databaseName) throws NoSuchObjectException {
+    CatalogMapping databaseMapping = mappingsByDatabaseName.get(databaseName.toLowerCase(Locale.ROOT));
     if (databaseMapping != null) {
       LOG
           .debug("Database Name `{}` maps to metastore with name '{}'", databaseName,
@@ -306,15 +306,15 @@ public class StaticDatabaseMappingService implements MappingEventListener {
   }
 
   @Override
-  public void checkTableAllowed(String databaseName, String tableName,
-      DatabaseMapping mapping) throws NoSuchObjectException {
+  public void checkTableAllowed(String catalog, String databaseName, String tableName,
+      CatalogMapping mapping) throws NoSuchObjectException {
     if (!isTableAllowed(databaseName, tableName)) {
       throw new NoSuchObjectException(String.format("%s.%s table not found in any mappings", databaseName, tableName));
     }
   }
 
   @Override
-  public List<String> filterTables(String databaseName, List<String> tableNames, DatabaseMapping mapping) {
+  public List<String> filterTables(String catalog, String databaseName, List<String> tableNames, CatalogMapping mapping) {
     List<String> allowedTables = new ArrayList<>();
     String db = databaseName.toLowerCase(Locale.ROOT);
     for (String table: tableNames)
@@ -334,10 +334,10 @@ public class StaticDatabaseMappingService implements MappingEventListener {
   }
 
   @Override
-  public List<DatabaseMapping> getDatabaseMappings() {
-    Builder<DatabaseMapping> builder = ImmutableList.builder();
+  public List<CatalogMapping> getDatabaseMappings() {
+    Builder<CatalogMapping> builder = ImmutableList.builder();
     synchronized (mappingsByMetaStoreName) {
-      for (DatabaseMapping databaseMapping : mappingsByMetaStoreName.values()) {
+      for (CatalogMapping databaseMapping : mappingsByMetaStoreName.values()) {
         if (includeInResults(databaseMapping)) {
           builder.add(databaseMapping);
         }
@@ -346,7 +346,7 @@ public class StaticDatabaseMappingService implements MappingEventListener {
     return builder.build();
   }
 
-  private boolean databaseAndTableAllowed(String database, String table, DatabaseMapping mapping) {
+  private boolean databaseAndTableAllowed(String database, String table, CatalogMapping mapping) {
     boolean isPrimary = mapping.equals(primaryDatabaseMapping);
     boolean isMapped = mappingsByDatabaseName.containsKey(database);
     boolean databaseAllowed = isPrimary || isMapped;
@@ -361,11 +361,11 @@ public class StaticDatabaseMappingService implements MappingEventListener {
       @Override
       public List<TableMeta> getTableMeta(String db_patterns, String tbl_patterns, List<String> tbl_types) {
 
-        BiFunction<TableMeta, DatabaseMapping, Boolean> filter = (tableMeta, mapping) ->
+        BiFunction<TableMeta, CatalogMapping, Boolean> filter = (tableMeta, mapping) ->
             databaseAndTableAllowed(tableMeta.getDbName(), tableMeta.getTableName(), mapping);
 
-        Map<DatabaseMapping, String> mappingsForPattern = new LinkedHashMap<>();
-        for (DatabaseMapping mapping : getDatabaseMappings()) {
+        Map<CatalogMapping, String> mappingsForPattern = new LinkedHashMap<>();
+        for (CatalogMapping mapping : getDatabaseMappings()) {
           mappingsForPattern.put(mapping, db_patterns);
         }
         return super.getTableMeta(tbl_patterns, tbl_types, mappingsForPattern, filter);
@@ -373,11 +373,11 @@ public class StaticDatabaseMappingService implements MappingEventListener {
 
       @Override
       public List<String> getAllDatabases(String pattern) {
-        BiFunction<String, DatabaseMapping, Boolean> filter = (database, mapping) -> mappingsByDatabaseName
+        BiFunction<String, CatalogMapping, Boolean> filter = (database, mapping) -> mappingsByDatabaseName
             .containsKey(database);
 
-        Map<DatabaseMapping, String> mappingsForPattern = new LinkedHashMap<>();
-        for (DatabaseMapping mapping : getDatabaseMappings()) {
+        Map<CatalogMapping, String> mappingsForPattern = new LinkedHashMap<>();
+        for (CatalogMapping mapping : getDatabaseMappings()) {
           mappingsForPattern.put(mapping, pattern);
         }
 

@@ -30,7 +30,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import com.google.common.collect.Lists;
 
-import com.hotels.bdp.waggledance.mapping.model.DatabaseMapping;
+import com.hotels.bdp.waggledance.mapping.model.CatalogMapping;
 import com.hotels.bdp.waggledance.mapping.service.requests.RequestCallable;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -38,9 +38,9 @@ public class PanopticConcurrentOperationExecutorTest {
 
   private final static long REQUEST_TIMEOUT = TimeUnit.MILLISECONDS.toMillis(500);
 
-  private @Mock DatabaseMapping mapping1;
-  private @Mock DatabaseMapping mapping2;
-  private @Mock DatabaseMapping mapping3;
+  private @Mock CatalogMapping mapping1;
+  private @Mock CatalogMapping mapping2;
+  private @Mock CatalogMapping mapping3;
 
   @Before
   public void setUp() {
@@ -130,9 +130,9 @@ public class PanopticConcurrentOperationExecutorTest {
   private class DummyRequestCallable implements RequestCallable<List<String>> {
 
     private final String callValue;
-    private final DatabaseMapping mapping;
+    private final CatalogMapping mapping;
 
-    private DummyRequestCallable(String callValue, DatabaseMapping mapping) {
+    private DummyRequestCallable(String callValue, CatalogMapping mapping) {
       this.callValue = callValue;
       this.mapping = mapping;
     }
@@ -143,7 +143,7 @@ public class PanopticConcurrentOperationExecutorTest {
     }
 
     @Override
-    public DatabaseMapping getMapping() {
+    public CatalogMapping getMapping() {
       return mapping;
     }
 
