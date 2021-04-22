@@ -361,8 +361,7 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
     DatabaseMapping mapping = databaseMappingService.databaseMapping(db_name);
     List<String> resultTables = mapping.getClient().get_tables(mapping.transformInboundDatabaseName(db_name), pattern);
     resultTables = databaseMappingService.filterTables(db_name, resultTables, mapping);
-    //TODO: check null as catName
-    return mapping.getMetastoreFilter().filterTableNames(null,db_name, resultTables);
+    return mapping.getMetastoreFilter().filterTableNames(mapping.getCatalog(),db_name, resultTables);
   }
 
   @Override
@@ -371,8 +370,7 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
     DatabaseMapping mapping = databaseMappingService.databaseMapping(db_name);
     List<String> resultTables =  mapping.getClient().get_all_tables(mapping.transformInboundDatabaseName(db_name));
     resultTables = databaseMappingService.filterTables(db_name, resultTables, mapping);
-    //TODO: check null as catName
-    return mapping.getMetastoreFilter().filterTableNames(null, db_name, resultTables);
+    return mapping.getMetastoreFilter().filterTableNames(mapping.getCatalog(), db_name, resultTables);
   }
 
   @Override
@@ -409,8 +407,7 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
     List<String> resultTables = mapping.getClient()
         .get_table_names_by_filter(mapping.transformInboundDatabaseName(dbname), filter, max_tables);
     List<String> result = databaseMappingService.filterTables(dbname, resultTables, mapping);
-    //TODO: check null as catName
-    return mapping.getMetastoreFilter().filterTableNames(null, dbname, result);
+    return mapping.getMetastoreFilter().filterTableNames(mapping.getCatalog(), dbname, result);
   }
 
   @Override
@@ -727,8 +724,7 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
     DatabaseMapping mapping = getDbMappingAndCheckTableAllowed(db_name, tbl_name);
     List<String> result = mapping.getClient()
         .get_partition_names(mapping.transformInboundDatabaseName(db_name), tbl_name, max_parts);
-    //TODO: check null as catName
-    return mapping.getMetastoreFilter().filterPartitionNames(null, db_name, tbl_name, result);
+    return mapping.getMetastoreFilter().filterPartitionNames(mapping.getCatalog(), db_name, tbl_name, result);
   }
 
   @Override
@@ -768,8 +764,7 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
     List<String> result = mapping
         .getClient()
         .get_partition_names_ps(mapping.transformInboundDatabaseName(db_name), tbl_name, part_vals, max_parts);
-    //TODO: check null as catName
-    return mapping.getMetastoreFilter().filterPartitionNames(null, db_name, tbl_name, result);
+    return mapping.getMetastoreFilter().filterPartitionNames(mapping.getCatalog(), db_name, tbl_name, result);
   }
 
   @Override
@@ -1626,8 +1621,7 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
     DatabaseMapping mapping = databaseMappingService.databaseMapping(db_name);
     List<String> resultTables = mapping.getClient().get_tables_by_type(mapping.transformInboundDatabaseName(db_name), pattern, tableType);
     List<String> result = databaseMappingService.filterTables(db_name, resultTables, mapping);
-    //TODO: check null as catName
-    return mapping.getMetastoreFilter().filterTableNames(null, db_name, result);
+    return mapping.getMetastoreFilter().filterTableNames(mapping.getCatalog(), db_name, result);
   }
 
   @Override
