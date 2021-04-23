@@ -106,9 +106,14 @@ public class WaggleDanceIntegrationTest {
 
   public @Rule ServerSocketRule graphite = new ServerSocketRule();
   public @Rule TemporaryFolder temporaryFolder = new TemporaryFolder();
-  public @Rule ThriftHiveMetaStoreJUnitRule localServer = new ThriftHiveMetaStoreJUnitRule(LOCAL_DATABASE);
-  public @Rule ThriftHiveMetaStoreJUnitRule remoteServer = new ThriftHiveMetaStoreJUnitRule(REMOTE_DATABASE);
-  public @Rule ThriftHiveMetaStoreJUnitRule newRemoteServer = new ThriftHiveMetaStoreJUnitRule();
+  public static Map<String,String> hiveConfig = new HashMap<>();
+  static{
+    hiveConfig.put("hive.in.test","true");
+  }
+
+  public @Rule ThriftHiveMetaStoreJUnitRule localServer = new ThriftHiveMetaStoreJUnitRule(LOCAL_DATABASE,hiveConfig);
+  public @Rule ThriftHiveMetaStoreJUnitRule remoteServer = new ThriftHiveMetaStoreJUnitRule(REMOTE_DATABASE,hiveConfig);
+  public @Rule ThriftHiveMetaStoreJUnitRule newRemoteServer = new ThriftHiveMetaStoreJUnitRule("test_database",hiveConfig);
   public @Rule DataFolder dataFolder = new ClassDataFolder();
 
   private ExecutorService executor;
