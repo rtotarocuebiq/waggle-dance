@@ -20,7 +20,9 @@ public class CatalogUtils
     {
         if(databaseName.startsWith("@"))
         {
-            return databaseName.substring(1).split("#")[1];
+            String[] split = databaseName.substring(1).split("#");
+
+            return split.length>1?split[1]:"";
         }
         return databaseName;
     }

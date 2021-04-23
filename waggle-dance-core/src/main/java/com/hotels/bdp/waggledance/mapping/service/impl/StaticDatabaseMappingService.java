@@ -35,7 +35,6 @@ import java.util.function.BiFunction;
 
 import javax.validation.constraints.NotNull;
 
-import com.hotels.bdp.waggledance.util.CatalogUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.hive.metastore.api.NoSuchObjectException;
 import org.apache.hadoop.hive.metastore.api.TableMeta;
@@ -209,7 +208,7 @@ public class StaticDatabaseMappingService implements MappingEventListener {
 
   private void addDatabaseMappings(List<String> databases, DatabaseMapping databaseMapping) {
     for (String databaseName : databases) {
-      mappingsByDatabaseName.put(CatalogUtils.createDbNameWithCatalog(databaseMapping.getCatalog(), databaseName), databaseMapping);
+      mappingsByDatabaseName.put(databaseName, databaseMapping);
     }
   }
 
