@@ -24,8 +24,8 @@ public class ReadOnlyAccessControlHandlerTest {
   @Test
   public void hasWritePermission() {
     ReadOnlyAccessControlHandler handler = new ReadOnlyAccessControlHandler();
-    assertFalse(handler.hasWritePermission("db"));
-    assertFalse(handler.hasWritePermission(null));
+    assertFalse(handler.hasWritePermission("hive","db"));
+    assertFalse(handler.hasWritePermission("hive", null));
   }
 
   @Test
@@ -38,6 +38,6 @@ public class ReadOnlyAccessControlHandlerTest {
   public void databaseCreatedNotification() {
     ReadOnlyAccessControlHandler handler = new ReadOnlyAccessControlHandler();
     // nothing should happen
-    handler.databaseCreatedNotification("db");
+    handler.databaseCreatedNotification("hive", "db");
   }
 }

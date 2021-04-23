@@ -130,7 +130,7 @@ class MetaStoreMappingImpl implements MetaStoreMapping {
 
   @Override
   public MetaStoreMapping checkWritePermissions(String databaseName) {
-    if (!accessControlHandler.hasWritePermission(databaseName)) {
+    if (!accessControlHandler.hasWritePermission(catalog, databaseName)) {
       throw new NotAllowedException(
           "You cannot perform this operation on the virtual database '" + databaseName + "'.");
     }
@@ -142,7 +142,7 @@ class MetaStoreMappingImpl implements MetaStoreMapping {
     throws AlreadyExistsException, InvalidObjectException, MetaException, TException {
     if (accessControlHandler.hasCreatePermission()) {
       getClient().create_database(database);
-      accessControlHandler.databaseCreatedNotification(database.getName());
+      accessControlHandler.databaseCreatedNotification(catalog, database.getName());
     } else {
       throw new NotAllowedException("You cannot create the database '" + database.getName() + "'.");
     }

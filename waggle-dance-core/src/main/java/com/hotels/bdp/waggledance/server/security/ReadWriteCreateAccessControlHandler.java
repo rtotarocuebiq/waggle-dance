@@ -35,7 +35,7 @@ public class ReadWriteCreateAccessControlHandler implements AccessControlHandler
   }
 
   @Override
-  public boolean hasWritePermission(String databaseName) {
+  public boolean hasWritePermission(String catalog, String databaseName) {
     return true;
   }
 
@@ -45,7 +45,7 @@ public class ReadWriteCreateAccessControlHandler implements AccessControlHandler
   }
 
   @Override
-  public void databaseCreatedNotification(String name) {
+  public void databaseCreatedNotification(String catalog, String name) {
     // Notify to update mapped databases
     List<String> mappedDatabases = null;
     if (metaStore.getMappedDatabases() != null) {

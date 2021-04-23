@@ -155,7 +155,7 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
 
   private static final Logger LOG = LoggerFactory.getLogger(FederatedHMSHandler.class);
 
-  private static final String INVOCATION_LOG_NAME = "com.hotels.bdp.waggledance.server.invocation-log";
+  static final String INVOCATION_LOG_NAME = "com.hotels.bdp.waggledance.server.invocation-log";
   MappingEventListener databaseMappingService;
   NotifyingFederationService notifyingFederationService;
   Configuration conf;

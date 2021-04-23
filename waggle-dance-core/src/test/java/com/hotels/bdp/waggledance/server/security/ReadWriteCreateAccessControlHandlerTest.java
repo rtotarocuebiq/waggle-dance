@@ -53,8 +53,8 @@ public class ReadWriteCreateAccessControlHandlerTest {
 
   @Test
   public void hasWritePermission() {
-    assertTrue(handler.hasWritePermission("db"));
-    assertTrue(handler.hasWritePermission(null));
+    assertTrue(handler.hasWritePermission("hive","db"));
+    assertTrue(handler.hasWritePermission("hive",null));
   }
 
   @Test
@@ -64,7 +64,7 @@ public class ReadWriteCreateAccessControlHandlerTest {
 
   @Test
   public void databaseCreatedNotificationPrimaryNoMapped() {
-    handler.databaseCreatedNotification(database);
+    handler.databaseCreatedNotification("hive",database);
 
     verify(federationService).update(eq(primaryMetaStore), captor.capture());
     PrimaryMetaStore newPrimaryMetaStore = captor.getValue();
@@ -75,7 +75,7 @@ public class ReadWriteCreateAccessControlHandlerTest {
   @Test
   public void databaseCreatedNotificationPrimaryHasEmptyMapped() {
     when(primaryMetaStore.getMappedDatabases()).thenReturn(Collections.emptyList());
-    handler.databaseCreatedNotification(database);
+    handler.databaseCreatedNotification("hive",database);
 
     verify(federationService).update(eq(primaryMetaStore), captor.capture());
     PrimaryMetaStore newPrimaryMetaStore = captor.getValue();
@@ -87,7 +87,7 @@ public class ReadWriteCreateAccessControlHandlerTest {
   public void databaseCreatedNotificationPrimaryHasNonEmptyMapped() {
     List<String> mappedDatabases = Arrays.asList("db1", "db2", "db3");
     when(primaryMetaStore.getMappedDatabases()).thenReturn(mappedDatabases);
-    handler.databaseCreatedNotification(database);
+    handler.databaseCreatedNotification("hive",database);
 
     verify(federationService).update(eq(primaryMetaStore), captor.capture());
     PrimaryMetaStore newPrimaryMetaStore = captor.getValue();

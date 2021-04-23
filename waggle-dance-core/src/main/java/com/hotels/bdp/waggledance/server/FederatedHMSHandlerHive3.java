@@ -116,10 +116,19 @@ import org.apache.hadoop.hive.metastore.txn.TxnStore;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.config.ConfigurableBeanFactory;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Component;
+
+import com.jcabi.aspects.Loggable;
 
 import com.hotels.bdp.waggledance.mapping.service.MappingEventListener;
 import com.hotels.bdp.waggledance.mapping.service.impl.NotifyingFederationService;
+import com.hotels.bdp.waggledance.metrics.Monitored;
 
+@Monitored
+@Component
+@Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
 public class FederatedHMSHandlerHive3
         extends FederatedHMSHandler
 {
@@ -133,12 +142,14 @@ public class FederatedHMSHandlerHive3
     }
 
     @Override
+    @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
     public int getThreadId()
     {
         return id.incrementAndGet();
     }
 
     @Override
+    @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
     public RawStore getMS()
             throws MetaException
     {
@@ -146,18 +157,21 @@ public class FederatedHMSHandlerHive3
     }
 
     @Override
+    @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
     public TxnStore getTxnHandler()
     {
         throw new IllegalStateException("Called internally to metastore only so cannot be called by the proxy");
     }
 
     @Override
+    @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
     public Warehouse getWh()
     {
         throw new IllegalStateException("Called internally to metastore only so cannot be called by the proxy");
     }
 
     @Override
+    @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
     public Database get_database_core(String catName, String name)
             throws NoSuchObjectException, MetaException
     {
@@ -165,6 +179,7 @@ public class FederatedHMSHandlerHive3
     }
 
     @Override
+    @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
     public Table get_table_core(String catName, String dbname, String name)
             throws MetaException, NoSuchObjectException
     {
@@ -172,18 +187,21 @@ public class FederatedHMSHandlerHive3
     }
 
     @Override
+    @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
     public List<TransactionalMetaStoreEventListener> getTransactionalListeners()
     {
         throw new IllegalStateException("Called internally to metastore only so cannot be called by the proxy");
     }
 
     @Override
+    @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
     public List<MetaStoreEventListener> getListeners()
     {
         throw new IllegalStateException("Called internally to metastore only so cannot be called by the proxy");
     }
 
     @Override
+    @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
     public void create_catalog(CreateCatalogRequest createCatalogRequest)
             throws AlreadyExistsException, InvalidObjectException, MetaException, TException
     {
@@ -191,6 +209,7 @@ public class FederatedHMSHandlerHive3
     }
 
     @Override
+    @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
     public void alter_catalog(AlterCatalogRequest alterCatalogRequest)
             throws NoSuchObjectException, InvalidOperationException, MetaException, TException
     {
@@ -198,6 +217,7 @@ public class FederatedHMSHandlerHive3
     }
 
     @Override
+    @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
     public GetCatalogResponse get_catalog(GetCatalogRequest getCatalogRequest)
             throws NoSuchObjectException, MetaException, TException
     {
@@ -205,6 +225,7 @@ public class FederatedHMSHandlerHive3
     }
 
     @Override
+    @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
     public GetCatalogsResponse get_catalogs()
             throws MetaException, TException
     {
@@ -212,6 +233,7 @@ public class FederatedHMSHandlerHive3
     }
 
     @Override
+    @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
     public void drop_catalog(DropCatalogRequest dropCatalogRequest)
             throws NoSuchObjectException, InvalidOperationException, MetaException, TException
     {
@@ -219,6 +241,7 @@ public class FederatedHMSHandlerHive3
     }
 
     @Override
+    @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
     public void add_unique_constraint(AddUniqueConstraintRequest addUniqueConstraintRequest)
             throws NoSuchObjectException, MetaException, TException
     {
@@ -226,6 +249,7 @@ public class FederatedHMSHandlerHive3
     }
 
     @Override
+    @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
     public void add_not_null_constraint(AddNotNullConstraintRequest addNotNullConstraintRequest)
             throws NoSuchObjectException, MetaException, TException
     {
@@ -233,6 +257,7 @@ public class FederatedHMSHandlerHive3
     }
 
     @Override
+    @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
     public void add_default_constraint(AddDefaultConstraintRequest addDefaultConstraintRequest)
             throws NoSuchObjectException, MetaException, TException
     {
@@ -240,6 +265,7 @@ public class FederatedHMSHandlerHive3
     }
 
     @Override
+    @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
     public void add_check_constraint(AddCheckConstraintRequest addCheckConstraintRequest)
             throws NoSuchObjectException, MetaException, TException
     {
@@ -247,6 +273,7 @@ public class FederatedHMSHandlerHive3
     }
 
     @Override
+    @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
     public void truncate_table(String dbName, String tableName, List<String> partNames)
             throws MetaException, TException
     {
@@ -254,6 +281,7 @@ public class FederatedHMSHandlerHive3
     }
 
     @Override
+    @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
     public List<String> get_materialized_views_for_rewriting(String view)
             throws MetaException, TException
     {
@@ -261,6 +289,7 @@ public class FederatedHMSHandlerHive3
     }
 
     @Override
+    @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
     public Materialization get_materialization_invalidation_info(CreationMetadata creationMetadata, String s)
             throws MetaException, InvalidOperationException, UnknownDBException, TException
     {
@@ -268,6 +297,7 @@ public class FederatedHMSHandlerHive3
     }
 
     @Override
+    @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
     public void update_creation_metadata(String s, String s1, String s2, CreationMetadata creationMetadata)
             throws MetaException, InvalidOperationException, UnknownDBException, TException
     {
@@ -275,6 +305,7 @@ public class FederatedHMSHandlerHive3
     }
 
     @Override
+    @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
     public UniqueConstraintsResponse get_unique_constraints(UniqueConstraintsRequest uniqueConstraintsRequest)
             throws MetaException, NoSuchObjectException, TException
     {
@@ -282,6 +313,7 @@ public class FederatedHMSHandlerHive3
     }
 
     @Override
+    @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
     public NotNullConstraintsResponse get_not_null_constraints(NotNullConstraintsRequest notNullConstraintsRequest)
             throws MetaException, NoSuchObjectException, TException
     {
@@ -289,6 +321,7 @@ public class FederatedHMSHandlerHive3
     }
 
     @Override
+    @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
     public DefaultConstraintsResponse get_default_constraints(DefaultConstraintsRequest defaultConstraintsRequest)
             throws MetaException, NoSuchObjectException, TException
     {
@@ -296,6 +329,7 @@ public class FederatedHMSHandlerHive3
     }
 
     @Override
+    @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
     public CheckConstraintsResponse get_check_constraints(CheckConstraintsRequest checkConstraintsRequest)
             throws MetaException, NoSuchObjectException, TException
     {
@@ -303,6 +337,7 @@ public class FederatedHMSHandlerHive3
     }
 
     @Override
+    @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
     public GrantRevokePrivilegeResponse refresh_privileges(HiveObjectRef hiveObjectRef, String s, GrantRevokePrivilegeRequest grantRevokePrivilegeRequest)
             throws MetaException, TException
     {
@@ -310,6 +345,7 @@ public class FederatedHMSHandlerHive3
     }
 
     @Override
+    @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
     public void repl_tbl_writeid_state(ReplTblWriteIdStateRequest replTblWriteIdStateRequest)
             throws TException
     {
@@ -317,6 +353,7 @@ public class FederatedHMSHandlerHive3
     }
 
     @Override
+    @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
     public GetValidWriteIdsResponse get_valid_write_ids(GetValidWriteIdsRequest getValidWriteIdsRequest)
             throws NoSuchTxnException, MetaException, TException
     {
@@ -324,6 +361,7 @@ public class FederatedHMSHandlerHive3
     }
 
     @Override
+    @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
     public AllocateTableWriteIdsResponse allocate_table_write_ids(AllocateTableWriteIdsRequest allocateTableWriteIdsRequest)
             throws NoSuchTxnException, TxnAbortedException, MetaException, TException
     {
@@ -331,6 +369,7 @@ public class FederatedHMSHandlerHive3
     }
 
     @Override
+    @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
     public NotificationEventsCountResponse get_notification_events_count(NotificationEventsCountRequest notificationEventsCountRequest)
             throws TException
     {
@@ -338,6 +377,7 @@ public class FederatedHMSHandlerHive3
     }
 
     @Override
+    @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
     public CmRecycleResponse cm_recycle(CmRecycleRequest cmRecycleRequest)
             throws MetaException, TException
     {
@@ -345,6 +385,7 @@ public class FederatedHMSHandlerHive3
     }
 
     @Override
+    @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
     public String get_metastore_db_uuid()
             throws MetaException, TException
     {
@@ -352,6 +393,7 @@ public class FederatedHMSHandlerHive3
     }
 
     @Override
+    @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
     public WMCreateResourcePlanResponse create_resource_plan(WMCreateResourcePlanRequest wmCreateResourcePlanRequest)
             throws AlreadyExistsException, InvalidObjectException, MetaException, TException
     {
@@ -359,6 +401,7 @@ public class FederatedHMSHandlerHive3
     }
 
     @Override
+    @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
     public WMGetResourcePlanResponse get_resource_plan(WMGetResourcePlanRequest wmGetResourcePlanRequest)
             throws NoSuchObjectException, MetaException, TException
     {
@@ -366,6 +409,7 @@ public class FederatedHMSHandlerHive3
     }
 
     @Override
+    @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
     public WMGetActiveResourcePlanResponse get_active_resource_plan(WMGetActiveResourcePlanRequest wmGetActiveResourcePlanRequest)
             throws MetaException, TException
     {
@@ -373,6 +417,7 @@ public class FederatedHMSHandlerHive3
     }
 
     @Override
+    @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
     public WMGetAllResourcePlanResponse get_all_resource_plans(WMGetAllResourcePlanRequest wmGetAllResourcePlanRequest)
             throws MetaException, TException
     {
@@ -380,6 +425,7 @@ public class FederatedHMSHandlerHive3
     }
 
     @Override
+    @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
     public WMAlterResourcePlanResponse alter_resource_plan(WMAlterResourcePlanRequest wmAlterResourcePlanRequest)
             throws NoSuchObjectException, InvalidOperationException, MetaException, TException
     {
@@ -387,6 +433,7 @@ public class FederatedHMSHandlerHive3
     }
 
     @Override
+    @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
     public WMValidateResourcePlanResponse validate_resource_plan(WMValidateResourcePlanRequest wmValidateResourcePlanRequest)
             throws NoSuchObjectException, MetaException, TException
     {
@@ -394,6 +441,7 @@ public class FederatedHMSHandlerHive3
     }
 
     @Override
+    @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
     public WMDropResourcePlanResponse drop_resource_plan(WMDropResourcePlanRequest wmDropResourcePlanRequest)
             throws NoSuchObjectException, InvalidOperationException, MetaException, TException
     {
@@ -401,6 +449,7 @@ public class FederatedHMSHandlerHive3
     }
 
     @Override
+    @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
     public WMCreateTriggerResponse create_wm_trigger(WMCreateTriggerRequest wmCreateTriggerRequest)
             throws AlreadyExistsException, NoSuchObjectException, InvalidObjectException, MetaException, TException
     {
@@ -408,6 +457,7 @@ public class FederatedHMSHandlerHive3
     }
 
     @Override
+    @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
     public WMAlterTriggerResponse alter_wm_trigger(WMAlterTriggerRequest wmAlterTriggerRequest)
             throws NoSuchObjectException, InvalidObjectException, MetaException, TException
     {
@@ -415,6 +465,7 @@ public class FederatedHMSHandlerHive3
     }
 
     @Override
+    @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
     public WMDropTriggerResponse drop_wm_trigger(WMDropTriggerRequest wmDropTriggerRequest)
             throws NoSuchObjectException, InvalidOperationException, MetaException, TException
     {
@@ -422,6 +473,7 @@ public class FederatedHMSHandlerHive3
     }
 
     @Override
+    @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
     public WMGetTriggersForResourePlanResponse get_triggers_for_resourceplan(WMGetTriggersForResourePlanRequest wmGetTriggersForResourePlanRequest)
             throws NoSuchObjectException, MetaException, TException
     {
@@ -429,6 +481,7 @@ public class FederatedHMSHandlerHive3
     }
 
     @Override
+    @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
     public WMCreatePoolResponse create_wm_pool(WMCreatePoolRequest wmCreatePoolRequest)
             throws AlreadyExistsException, NoSuchObjectException, InvalidObjectException, MetaException, TException
     {
@@ -436,6 +489,7 @@ public class FederatedHMSHandlerHive3
     }
 
     @Override
+    @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
     public WMAlterPoolResponse alter_wm_pool(WMAlterPoolRequest wmAlterPoolRequest)
             throws AlreadyExistsException, NoSuchObjectException, InvalidObjectException, MetaException, TException
     {
@@ -443,6 +497,7 @@ public class FederatedHMSHandlerHive3
     }
 
     @Override
+    @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
     public WMDropPoolResponse drop_wm_pool(WMDropPoolRequest wmDropPoolRequest)
             throws NoSuchObjectException, InvalidOperationException, MetaException, TException
     {
@@ -450,6 +505,7 @@ public class FederatedHMSHandlerHive3
     }
 
     @Override
+    @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
     public WMCreateOrUpdateMappingResponse create_or_update_wm_mapping(WMCreateOrUpdateMappingRequest wmCreateOrUpdateMappingRequest)
             throws AlreadyExistsException, NoSuchObjectException, InvalidObjectException, MetaException, TException
     {
@@ -457,6 +513,7 @@ public class FederatedHMSHandlerHive3
     }
 
     @Override
+    @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
     public WMDropMappingResponse drop_wm_mapping(WMDropMappingRequest wmDropMappingRequest)
             throws NoSuchObjectException, InvalidOperationException, MetaException, TException
     {
@@ -464,6 +521,7 @@ public class FederatedHMSHandlerHive3
     }
 
     @Override
+    @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
     public WMCreateOrDropTriggerToPoolMappingResponse create_or_drop_wm_trigger_to_pool_mapping(WMCreateOrDropTriggerToPoolMappingRequest wmCreateOrDropTriggerToPoolMappingRequest)
             throws AlreadyExistsException, NoSuchObjectException, InvalidObjectException, MetaException, TException
     {
@@ -471,6 +529,7 @@ public class FederatedHMSHandlerHive3
     }
 
     @Override
+    @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
     public void create_ischema(ISchema iSchema)
             throws AlreadyExistsException, NoSuchObjectException, MetaException, TException
     {
@@ -478,6 +537,7 @@ public class FederatedHMSHandlerHive3
     }
 
     @Override
+    @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
     public void alter_ischema(AlterISchemaRequest alterISchemaRequest)
             throws NoSuchObjectException, MetaException, TException
     {
@@ -485,6 +545,7 @@ public class FederatedHMSHandlerHive3
     }
 
     @Override
+    @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
     public ISchema get_ischema(ISchemaName iSchemaName)
             throws NoSuchObjectException, MetaException, TException
     {
@@ -492,6 +553,7 @@ public class FederatedHMSHandlerHive3
     }
 
     @Override
+    @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
     public void drop_ischema(ISchemaName iSchemaName)
             throws NoSuchObjectException, InvalidOperationException, MetaException, TException
     {
@@ -499,6 +561,7 @@ public class FederatedHMSHandlerHive3
     }
 
     @Override
+    @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
     public void add_schema_version(SchemaVersion schemaVersion)
             throws AlreadyExistsException, NoSuchObjectException, MetaException, TException
     {
@@ -506,6 +569,7 @@ public class FederatedHMSHandlerHive3
     }
 
     @Override
+    @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
     public SchemaVersion get_schema_version(SchemaVersionDescriptor schemaVersionDescriptor)
             throws NoSuchObjectException, MetaException, TException
     {
@@ -513,6 +577,7 @@ public class FederatedHMSHandlerHive3
     }
 
     @Override
+    @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
     public SchemaVersion get_schema_latest_version(ISchemaName iSchemaName)
             throws NoSuchObjectException, MetaException, TException
     {
@@ -520,6 +585,7 @@ public class FederatedHMSHandlerHive3
     }
 
     @Override
+    @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
     public List<SchemaVersion> get_schema_all_versions(ISchemaName iSchemaName)
             throws NoSuchObjectException, MetaException, TException
     {
@@ -527,6 +593,7 @@ public class FederatedHMSHandlerHive3
     }
 
     @Override
+    @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
     public void drop_schema_version(SchemaVersionDescriptor schemaVersionDescriptor)
             throws NoSuchObjectException, MetaException, TException
     {
@@ -534,6 +601,7 @@ public class FederatedHMSHandlerHive3
     }
 
     @Override
+    @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
     public FindSchemasByColsResp get_schemas_by_cols(FindSchemasByColsRqst findSchemasByColsRqst)
             throws MetaException, TException
     {
@@ -541,6 +609,7 @@ public class FederatedHMSHandlerHive3
     }
 
     @Override
+    @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
     public void map_schema_version_to_serde(MapSchemaVersionToSerdeRequest mapSchemaVersionToSerdeRequest)
             throws NoSuchObjectException, MetaException, TException
     {
@@ -548,6 +617,7 @@ public class FederatedHMSHandlerHive3
     }
 
     @Override
+    @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
     public void set_schema_version_state(SetSchemaVersionStateRequest setSchemaVersionStateRequest)
             throws NoSuchObjectException, InvalidOperationException, MetaException, TException
     {
@@ -555,6 +625,7 @@ public class FederatedHMSHandlerHive3
     }
 
     @Override
+    @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
     public void add_serde(SerDeInfo serDeInfo)
             throws AlreadyExistsException, MetaException, TException
     {
@@ -562,6 +633,7 @@ public class FederatedHMSHandlerHive3
     }
 
     @Override
+    @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
     public SerDeInfo get_serde(GetSerdeRequest getSerdeRequest)
             throws NoSuchObjectException, MetaException, TException
     {
@@ -569,6 +641,7 @@ public class FederatedHMSHandlerHive3
     }
 
     @Override
+    @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
     public LockResponse get_lock_materialization_rebuild(String s, String s1, long l)
             throws TException
     {
@@ -576,6 +649,7 @@ public class FederatedHMSHandlerHive3
     }
 
     @Override
+    @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
     public boolean heartbeat_lock_materialization_rebuild(String s, String s1, long l)
             throws TException
     {
@@ -583,6 +657,7 @@ public class FederatedHMSHandlerHive3
     }
 
     @Override
+    @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
     public void add_runtime_stats(RuntimeStat runtimeStat)
             throws MetaException, TException
     {
@@ -590,6 +665,7 @@ public class FederatedHMSHandlerHive3
     }
 
     @Override
+    @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
     public List<RuntimeStat> get_runtime_stats(GetRuntimeStatsRequest getRuntimeStatsRequest)
             throws MetaException, TException
     {

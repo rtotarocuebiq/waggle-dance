@@ -36,6 +36,7 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.collect.HashBiMap;
 
+import com.hotels.bdp.waggledance.util.CatalogUtils;
 import com.hotels.hcommon.hive.metastore.client.tunnelling.MetastoreTunnel;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.EXISTING_PROPERTY, property = "federationType")
@@ -43,7 +44,7 @@ import com.hotels.hcommon.hive.metastore.client.tunnelling.MetastoreTunnel;
     @Type(value = PrimaryMetaStore.class, name = "PRIMARY"),
     @Type(value = FederatedMetaStore.class, name = "FEDERATED") })
 public abstract class AbstractMetaStore {
-  private String catalog;
+  private String catalog = "hive";
   private String databasePrefix;
   private String hiveMetastoreFilterHook;
   private List<String> writableDatabaseWhitelist;
