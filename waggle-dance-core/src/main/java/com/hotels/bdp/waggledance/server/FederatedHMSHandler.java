@@ -169,7 +169,7 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
     this.notifyingFederationService.subscribe(databaseMappingService);
   }
 
-  private ThriftHiveMetastore.Iface getPrimaryClient() throws TException {
+  ThriftHiveMetastore.Iface getPrimaryClient() throws TException {
     return databaseMappingService.primaryDatabaseMapping().getClient();
   }
 

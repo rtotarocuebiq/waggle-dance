@@ -16,6 +16,7 @@
 package com.hotels.bdp.waggledance.server;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.hadoop.hive.metastore.MetaStoreEventListener;
 import org.apache.hadoop.hive.metastore.RawStore;
@@ -116,150 +117,147 @@ import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.hotels.bdp.waggledance.api.model.AbstractMetaStore;
-import com.hotels.bdp.waggledance.mapping.model.DatabaseMapping;
 import com.hotels.bdp.waggledance.mapping.service.MappingEventListener;
 import com.hotels.bdp.waggledance.mapping.service.impl.NotifyingFederationService;
 
-public class FederatedHMSHandlerHive3 extends FederatedHMSHandler
+public class FederatedHMSHandlerHive3
+        extends FederatedHMSHandler
 {
     private static final Logger LOG = LoggerFactory.getLogger(FederatedHMSHandlerHive3.class);
+
+    private AtomicInteger id = new AtomicInteger();
 
     FederatedHMSHandlerHive3(MappingEventListener databaseMappingService, NotifyingFederationService notifyingFederationService)
     {
         super(databaseMappingService, notifyingFederationService);
     }
 
-
     @Override
     public int getThreadId()
     {
-        return 0;
+        return id.incrementAndGet();
     }
 
     @Override
     public RawStore getMS()
             throws MetaException
     {
-        return null;
+        throw new IllegalStateException("Called internally to metastore only so cannot be called by the proxy");
     }
 
     @Override
     public TxnStore getTxnHandler()
     {
-        return null;
+        throw new IllegalStateException("Called internally to metastore only so cannot be called by the proxy");
     }
 
     @Override
     public Warehouse getWh()
     {
-        return null;
+        throw new IllegalStateException("Called internally to metastore only so cannot be called by the proxy");
     }
 
     @Override
     public Database get_database_core(String catName, String name)
             throws NoSuchObjectException, MetaException
     {
-        DatabaseMapping databaseMapping = databaseMappingService.databaseMapping(name);
-        AbstractMetaStore abstractMetaStore = notifyingFederationService.get(databaseMapping.getMetastoreMappingName());
-
-        return null;
+        throw new IllegalStateException("Called internally to metastore only so cannot be called by the proxy");
     }
 
     @Override
     public Table get_table_core(String catName, String dbname, String name)
             throws MetaException, NoSuchObjectException
     {
-        return null;
+        throw new IllegalStateException("Called internally to metastore only so cannot be called by the proxy");
     }
 
     @Override
     public List<TransactionalMetaStoreEventListener> getTransactionalListeners()
     {
-        return null;
+        throw new IllegalStateException("Called internally to metastore only so cannot be called by the proxy");
     }
 
     @Override
     public List<MetaStoreEventListener> getListeners()
     {
-        return null;
+        throw new IllegalStateException("Called internally to metastore only so cannot be called by the proxy");
     }
 
     @Override
     public void create_catalog(CreateCatalogRequest createCatalogRequest)
             throws AlreadyExistsException, InvalidObjectException, MetaException, TException
     {
-
+        getPrimaryClient().create_catalog(createCatalogRequest);
     }
 
     @Override
     public void alter_catalog(AlterCatalogRequest alterCatalogRequest)
             throws NoSuchObjectException, InvalidOperationException, MetaException, TException
     {
-
+        getPrimaryClient().alter_catalog(alterCatalogRequest);
     }
 
     @Override
     public GetCatalogResponse get_catalog(GetCatalogRequest getCatalogRequest)
             throws NoSuchObjectException, MetaException, TException
     {
-        return null;
+        return getPrimaryClient().get_catalog(getCatalogRequest);
     }
 
     @Override
     public GetCatalogsResponse get_catalogs()
             throws MetaException, TException
     {
-        return null;
+        return getPrimaryClient().get_catalogs();
     }
 
     @Override
     public void drop_catalog(DropCatalogRequest dropCatalogRequest)
             throws NoSuchObjectException, InvalidOperationException, MetaException, TException
     {
-
+        getPrimaryClient().drop_catalog(dropCatalogRequest);
     }
 
     @Override
     public void add_unique_constraint(AddUniqueConstraintRequest addUniqueConstraintRequest)
             throws NoSuchObjectException, MetaException, TException
     {
-
+        getPrimaryClient().add_unique_constraint(addUniqueConstraintRequest);
     }
 
     @Override
     public void add_not_null_constraint(AddNotNullConstraintRequest addNotNullConstraintRequest)
             throws NoSuchObjectException, MetaException, TException
     {
-
+        getPrimaryClient().add_not_null_constraint(addNotNullConstraintRequest);
     }
 
     @Override
     public void add_default_constraint(AddDefaultConstraintRequest addDefaultConstraintRequest)
             throws NoSuchObjectException, MetaException, TException
     {
-
+        getPrimaryClient().add_default_constraint(addDefaultConstraintRequest);
     }
 
     @Override
     public void add_check_constraint(AddCheckConstraintRequest addCheckConstraintRequest)
             throws NoSuchObjectException, MetaException, TException
     {
-
+        getPrimaryClient().add_check_constraint(addCheckConstraintRequest);
     }
 
     @Override
-    public void truncate_table(String s, String s1, List<String> list)
+    public void truncate_table(String dbName, String tableName, List<String> partNames)
             throws MetaException, TException
     {
-
+        getPrimaryClient().truncate_table(dbName, tableName, partNames);
     }
 
     @Override
-    public List<String> get_materialized_views_for_rewriting(String s)
+    public List<String> get_materialized_views_for_rewriting(String view)
             throws MetaException, TException
     {
-        return null;
+        return getPrimaryClient().get_materialized_views_for_rewriting(view);
     }
 
     @Override
