@@ -16,6 +16,15 @@ public class CatalogUtils
         }
     }
 
+    public static String cleanDbName(String databaseName)
+    {
+        if(databaseName.startsWith("@"))
+        {
+            return databaseName.substring(1).split("#")[1];
+        }
+        return databaseName;
+    }
+
     public static List<String> createDbNamesWithCatalog(String catalog,List<String> databases)
     {
         return databases.stream().map(s -> createDbNameWithCatalog(catalog,s)).collect(Collectors.toList());

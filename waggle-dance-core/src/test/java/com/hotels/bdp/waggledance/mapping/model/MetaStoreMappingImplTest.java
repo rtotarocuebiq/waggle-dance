@@ -139,14 +139,14 @@ public class MetaStoreMappingImplTest {
   @Test
   public void checkWritePermissions() {
     String databaseName = "db";
-    when(accessControlHandler.hasWritePermission("hive",databaseName)).thenReturn(true);
+    when(accessControlHandler.hasWritePermission(databaseName)).thenReturn(true);
     assertThat(metaStoreMapping.checkWritePermissions(databaseName), is(metaStoreMapping));
   }
 
   @Test(expected = NotAllowedException.class)
   public void checkWritePermissionsThrowsException() {
     String databaseName = "db";
-    when(accessControlHandler.hasWritePermission("hive",databaseName)).thenReturn(false);
+    when(accessControlHandler.hasWritePermission(databaseName)).thenReturn(false);
     metaStoreMapping.checkWritePermissions(databaseName);
   }
 
@@ -156,7 +156,7 @@ public class MetaStoreMappingImplTest {
     when(accessControlHandler.hasCreatePermission()).thenReturn(true);
     metaStoreMapping.createDatabase(database);
     verify(client).create_database(database);
-    verify(accessControlHandler).databaseCreatedNotification("hive","db");
+    verify(accessControlHandler).databaseCreatedNotification("db");
   }
 
   @Test
@@ -168,7 +168,7 @@ public class MetaStoreMappingImplTest {
       fail("Should have thrown exception");
     } catch (NotAllowedException e) {
       verify(client, never()).create_database(database);
-      verify(accessControlHandler, never()).databaseCreatedNotification("hive","db");
+      verify(accessControlHandler, never()).databaseCreatedNotification("db");
     }
   }
 

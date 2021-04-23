@@ -58,28 +58,28 @@ public class DatabaseWhitelistAccessControlHandlerTest {
 
   @Test
   public void hasWritePermission() throws Exception {
-    assertTrue(handler.hasWritePermission("hive","writableDB"));
-    assertTrue(handler.hasWritePermission("hive",null));
-    assertFalse(handler.hasWritePermission("hive","nonWritableDB"));
+    assertTrue(handler.hasWritePermission("writableDB"));
+    assertTrue(handler.hasWritePermission(null));
+    assertFalse(handler.hasWritePermission("nonWritableDB"));
   }
 
   @Test
   public void hasRegexGrantedWritePermission() throws Exception {
-    assertTrue(handler.hasWritePermission("hive","userDB1"));
-    assertTrue(handler.hasWritePermission("hive","userdb2"));
-    assertFalse(handler.hasWritePermission("hive","user"));
+    assertTrue(handler.hasWritePermission("userDB1"));
+    assertTrue(handler.hasWritePermission("userdb2"));
+    assertFalse(handler.hasWritePermission("user"));
   }
 
   @Test
   public void hasCreatePermission() throws Exception {
     assertTrue(handler.hasCreatePermission());
-    assertTrue(handler.hasWritePermission("hive",null));
+    assertTrue(handler.hasWritePermission(null));
     assertTrue(handler.hasCreatePermission());
   }
 
   @Test
   public void databaseCreatedNotification() throws Exception {
-    handler.databaseCreatedNotification("hive","newDB");
+    handler.databaseCreatedNotification("newDB");
     verify(federationService).update(eq(primaryMetaStore), captor.capture());
     PrimaryMetaStore updatedMetastore = captor.getValue();
     assertThat(updatedMetastore.getWritableDatabaseWhiteList().size(), is(3));
@@ -88,7 +88,7 @@ public class DatabaseWhitelistAccessControlHandlerTest {
 
   @Test
   public void databaseCreatedNotificationNoDuplicates() throws Exception {
-    handler.databaseCreatedNotification("hive","writabledb");
+    handler.databaseCreatedNotification("writabledb");
     verify(federationService).update(eq(primaryMetaStore), captor.capture());
     PrimaryMetaStore updatedMetastore = captor.getValue();
     assertThat(updatedMetastore.getWritableDatabaseWhiteList().size(), is(2));
@@ -98,7 +98,7 @@ public class DatabaseWhitelistAccessControlHandlerTest {
   @Test
   public void databaseCreatedNotificationPrimaryNoMapped() {
     String database = "database";
-    handler.databaseCreatedNotification("hive",database);
+    handler.databaseCreatedNotification(database);
 
     verify(federationService).update(eq(primaryMetaStore), captor.capture());
     PrimaryMetaStore newPrimaryMetaStore = captor.getValue();
@@ -110,7 +110,7 @@ public class DatabaseWhitelistAccessControlHandlerTest {
   public void databaseCreatedNotificationPrimaryHasEmptyMapped() {
     String database = "database";
     when(primaryMetaStore.getMappedDatabases()).thenReturn(Collections.emptyList());
-    handler.databaseCreatedNotification("hive",database);
+    handler.databaseCreatedNotification(database);
 
     verify(federationService).update(eq(primaryMetaStore), captor.capture());
     PrimaryMetaStore newPrimaryMetaStore = captor.getValue();
@@ -123,7 +123,7 @@ public class DatabaseWhitelistAccessControlHandlerTest {
     String database = "database";
     List<String> mappedDatabases = Arrays.asList("db1", "db2", "db3");
     when(primaryMetaStore.getMappedDatabases()).thenReturn(mappedDatabases);
-    handler.databaseCreatedNotification("hive",database);
+    handler.databaseCreatedNotification(database);
 
     verify(federationService).update(eq(primaryMetaStore), captor.capture());
     PrimaryMetaStore newPrimaryMetaStore = captor.getValue();

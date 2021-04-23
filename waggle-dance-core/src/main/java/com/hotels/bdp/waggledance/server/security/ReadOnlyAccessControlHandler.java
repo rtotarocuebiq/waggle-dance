@@ -18,7 +18,7 @@ package com.hotels.bdp.waggledance.server.security;
 public class ReadOnlyAccessControlHandler implements AccessControlHandler {
 
   @Override
-  public boolean hasWritePermission(String catalog, String databaseName) {
+  public boolean hasWritePermission(String databaseName) {
     return false;
   }
 
@@ -28,7 +28,7 @@ public class ReadOnlyAccessControlHandler implements AccessControlHandler {
   }
 
   @Override
-  public void databaseCreatedNotification(String catalog, String name) {
+  public void databaseCreatedNotification(String name) {
     // nothing to do
   }
 }

@@ -36,7 +36,6 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.collect.HashBiMap;
 
-import com.hotels.bdp.waggledance.util.CatalogUtils;
 import com.hotels.hcommon.hive.metastore.client.tunnelling.MetastoreTunnel;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.EXISTING_PROPERTY, property = "federationType")

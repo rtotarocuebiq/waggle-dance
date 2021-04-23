@@ -21,7 +21,7 @@ public interface AccessControlHandler {
    * @param databaseName name of the database
    * @return true if databaseName is writable, false otherwise
    */
-  boolean hasWritePermission(String catalog, String databaseName);
+  boolean hasWritePermission(String databaseName);
 
   /**
    * @return true if databases are allowed to be created, false otherwise
@@ -33,5 +33,5 @@ public interface AccessControlHandler {
    *
    * @param name of the created database
    */
-  void databaseCreatedNotification(String catalog, String name);
+  void databaseCreatedNotification(String name);
 }
