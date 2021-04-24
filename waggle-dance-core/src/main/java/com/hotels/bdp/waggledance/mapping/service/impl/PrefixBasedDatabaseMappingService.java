@@ -16,6 +16,8 @@
 package com.hotels.bdp.waggledance.mapping.service.impl;
 
 import static com.hotels.bdp.waggledance.api.model.FederationType.PRIMARY;
+import static org.apache.hadoop.hive.metastore.utils.MetaStoreUtils.DB_NAME;
+import static org.apache.hadoop.hive.metastore.utils.MetaStoreUtils.parseDbName;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -33,8 +35,10 @@ import javax.validation.constraints.NotNull;
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.hive.metastore.api.Function;
 import org.apache.hadoop.hive.metastore.api.GetAllFunctionsResponse;
+import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.hadoop.hive.metastore.api.NoSuchObjectException;
 import org.apache.hadoop.hive.metastore.api.TableMeta;
+import org.apache.hadoop.hive.metastore.utils.MetaStoreUtils;
 import org.apache.logging.log4j.util.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -294,12 +298,19 @@ public class PrefixBasedDatabaseMappingService implements MappingEventListener {
   }
 
   private boolean isDbAllowed(String databasePrefix, String database) {
-    AllowList allowList = mappedDbByPrefix.get(databasePrefix);
-    if (allowList == null) {
-      // Accept everything
-      return true;
+    try {
+      String internal_name = parseDbName(database, null)[DB_NAME];
+      AllowList allowList = mappedDbByPrefix.get(databasePrefix);
+      if (allowList == null) {
+        // Accept everything
+        return true;
+      }
+      return allowList.contains(internal_name);
     }
-    return allowList.contains(database);
+    catch (MetaException e) {
+      //FIXME:
+      throw new RuntimeException(e);
+    }
   }
 
   private boolean databaseAndTableAllowed(String database, String table, DatabaseMapping mapping) {
@@ -325,12 +336,19 @@ public class PrefixBasedDatabaseMappingService implements MappingEventListener {
 
       @Override
       public List<String> getAllDatabases(String databasePattern) {
-        Map<DatabaseMapping, String> databaseMappingsForPattern = databaseMappingsByDbPattern(databasePattern);
+        try {
+          String internal_pattern = MetaStoreUtils.parseDbName(databasePattern, null)[DB_NAME];
+          Map<DatabaseMapping, String> databaseMappingsForPattern = databaseMappingsByDbPattern(internal_pattern);
 
-        BiFunction<String, DatabaseMapping, Boolean> filter = (database, mapping) -> isDbAllowed(
-            mapping.getDatabasePrefix(), database);
+          BiFunction<String, DatabaseMapping, Boolean> filter = (database, mapping) -> isDbAllowed(
+                  mapping.getDatabasePrefix(), database);
 
-        return super.getAllDatabases(databaseMappingsForPattern, filter);
+          return super.getAllDatabases(databaseMappingsForPattern, filter);
+        }
+        catch (MetaException e) {
+          throw new RuntimeException(e);
+        }
+
       }
 
       @Override

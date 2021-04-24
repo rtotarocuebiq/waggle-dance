@@ -35,6 +35,8 @@ import com.hotels.bdp.waggledance.client.CloseableThriftHiveMetastoreIface;
 import com.hotels.bdp.waggledance.server.security.AccessControlHandler;
 import com.hotels.bdp.waggledance.server.security.NotAllowedException;
 
+import static org.apache.hadoop.hive.metastore.utils.MetaStoreUtils.*;
+
 class MetaStoreMappingImpl implements MetaStoreMapping {
 
   private final static Logger log = LoggerFactory.getLogger(MetaStoreMappingImpl.class);
@@ -130,11 +132,17 @@ class MetaStoreMappingImpl implements MetaStoreMapping {
 
   @Override
   public MetaStoreMapping checkWritePermissions(String databaseName) {
-    if (!accessControlHandler.hasWritePermission(databaseName)) {
-      throw new NotAllowedException(
-          "You cannot perform this operation on the virtual database '" + databaseName + "'.");
+    try {
+      String internal_name = parseDbName(databaseName, null)[DB_NAME];
+      if (!accessControlHandler.hasWritePermission(internal_name)) {
+        throw new NotAllowedException(
+                "You cannot perform this operation on the virtual database '" + databaseName + "'.");
+      }
+      return this;
     }
-    return this;
+    catch (MetaException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Override

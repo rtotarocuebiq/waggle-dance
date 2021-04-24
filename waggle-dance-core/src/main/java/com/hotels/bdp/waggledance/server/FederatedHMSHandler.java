@@ -148,6 +148,8 @@ import com.hotels.bdp.waggledance.mapping.service.MappingEventListener;
 import com.hotels.bdp.waggledance.mapping.service.impl.NotifyingFederationService;
 import com.hotels.bdp.waggledance.metrics.Monitored;
 
+import static org.apache.hadoop.hive.metastore.utils.MetaStoreUtils.*;
+
 @Monitored
 @Component
 @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
@@ -239,7 +241,8 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
   @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
   public Database get_database(String name) throws NoSuchObjectException, MetaException, TException {
     LOG.info("Fetching database {}", name);
-    DatabaseMapping mapping = databaseMappingService.databaseMapping(name);
+    String internal_name = parseDbName(name, null)[DB_NAME];
+    DatabaseMapping mapping = databaseMappingService.databaseMapping(internal_name);
     LOG.info("Mapping is '{}'", mapping.getDatabasePrefix());
     Database result = mapping.getClient().get_database(mapping.transformInboundDatabaseName(name));
     return mapping.transformOutboundDatabase(mapping.getMetastoreFilter().filterDatabase(result));
@@ -268,8 +271,11 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
   @Override
   @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
   public void alter_database(String dbname, Database db) throws MetaException, NoSuchObjectException, TException {
-    DatabaseMapping mapping = checkWritePermissions(dbname);
-    mapping.checkWritePermissions(db.getName());
+    String internal_name = parseDbName(dbname, null)[DB_NAME];
+    DatabaseMapping mapping = checkWritePermissions(internal_name);
+    //    mapping.checkWritePermissions(db.getName());
+    // changed for allowing db renaming
+    mapping.checkWritePermissions(internal_name);
     mapping
         .getClient()
         .alter_database(mapping.transformInboundDatabaseName(dbname), mapping.transformInboundDatabase(db));
@@ -376,7 +382,8 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
   @Override
   @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
   public Table get_table(String dbname, String tbl_name) throws MetaException, NoSuchObjectException, TException {
-    DatabaseMapping mapping = getDbMappingAndCheckTableAllowed(dbname, tbl_name);
+    String internal_name = parseDbName(dbname, null)[DB_NAME];
+    DatabaseMapping mapping = getDbMappingAndCheckTableAllowed(internal_name, tbl_name);
     Table table = mapping.getClient().get_table(mapping.transformInboundDatabaseName(dbname), tbl_name);
     return mapping
         .transformOutboundTable(mapping.getMetastoreFilter().filterTable(table));

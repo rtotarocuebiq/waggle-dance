@@ -33,6 +33,7 @@ import com.hotels.bdp.waggledance.mapping.service.requests.GetAllDatabasesByPatt
 import com.hotels.bdp.waggledance.mapping.service.requests.GetAllFunctionsRequest;
 import com.hotels.bdp.waggledance.mapping.service.requests.GetTableMetaRequest;
 import com.hotels.bdp.waggledance.mapping.service.requests.SetUgiRequest;
+import org.apache.hadoop.hive.metastore.utils.MetaStoreUtils;
 
 /**
  * Class responsible for handling the Hive operations that need to combine results from multiple Hive Metastores
@@ -69,7 +70,7 @@ public abstract class PanopticOperationHandler {
     for (Entry<DatabaseMapping, String> mappingWithPattern : databaseMappingsForPattern.entrySet()) {
       DatabaseMapping mapping = mappingWithPattern.getKey();
       GetAllDatabasesByPatternRequest databasesByPatternRequest = new GetAllDatabasesByPatternRequest(mapping,
-          mappingWithPattern.getValue(), filter);
+              MetaStoreUtils.prependNotNullCatToDbName(mapping.getCatalog(),mappingWithPattern.getValue()), filter);
       allRequests.add(databasesByPatternRequest);
     }
     List<String> result = getPanopticOperationExecutor()

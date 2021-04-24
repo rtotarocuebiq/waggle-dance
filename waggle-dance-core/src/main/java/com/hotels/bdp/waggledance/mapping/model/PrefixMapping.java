@@ -15,8 +15,16 @@
  */
 package com.hotels.bdp.waggledance.mapping.model;
 
+import org.apache.hadoop.hive.metastore.api.MetaException;
+import org.apache.hadoop.hive.metastore.utils.MetaStoreUtils;
+
 import java.util.ArrayList;
 import java.util.List;
+
+import static org.apache.hadoop.hive.metastore.utils.MetaStoreUtils.CAT_NAME;
+import static org.apache.hadoop.hive.metastore.utils.MetaStoreUtils.DB_NAME;
+import static org.apache.hadoop.hive.metastore.utils.MetaStoreUtils.parseDbName;
+import static org.apache.hadoop.hive.metastore.utils.MetaStoreUtils.prependNotNullCatToDbName;
 
 public class PrefixMapping extends MetaStoreMappingDecorator {
 
@@ -26,7 +34,26 @@ public class PrefixMapping extends MetaStoreMappingDecorator {
 
   @Override
   public String transformOutboundDatabaseName(String databaseName) {
-    return getDatabasePrefix() + super.transformOutboundDatabaseName(databaseName);
+    try {
+      if(hasCatalogName(databaseName)) {
+        String[] catalogAndDatabase = parseDbName(databaseName, null);
+        String dbName = catalogAndDatabase[DB_NAME];
+        String catalogName = catalogAndDatabase[CAT_NAME];
+        String prefixedDbName = getDatabasePrefix() + super.transformOutboundDatabaseName(dbName);
+        return prependNotNullCatToDbName(catalogName, prefixedDbName);
+      }else {
+        return getDatabasePrefix() + super.transformOutboundDatabaseName(databaseName);
+      }
+    }
+    catch (MetaException e) {
+      //FIXME:
+      throw new RuntimeException(e);
+    }
+  }
+
+  private static boolean hasCatalogName(String dbName) {
+    return dbName != null && dbName.length() > 0 &&
+            dbName.charAt(0) == '@';
   }
 
   @Override
@@ -34,13 +61,29 @@ public class PrefixMapping extends MetaStoreMappingDecorator {
     List<String> outbound = super.transformOutboundDatabaseNameMultiple(databaseName);
     List<String> result = new ArrayList<>(outbound.size());
     for (String outboundDatabase : outbound) {
-      result.add(getDatabasePrefix() + outboundDatabase);
+      result.add(transformOutboundDatabaseName(outboundDatabase));
     }
     return result;
   }
 
   @Override
   public String transformInboundDatabaseName(String databaseName) {
+    try {
+      if(hasCatalogName(databaseName)) {
+        String[] catalogAndDatabase = parseDbName(databaseName, null);
+        String dbName = catalogAndDatabase[DB_NAME];
+        String catalogName = catalogAndDatabase[CAT_NAME];
+        return prependNotNullCatToDbName(catalogName, internalTransformInboundDatabaseName(dbName));
+      }
+      return internalTransformInboundDatabaseName(databaseName);
+    }
+    catch (MetaException e) {
+      //FIXME:
+      throw new RuntimeException(e);
+    }
+  }
+
+  private String internalTransformInboundDatabaseName(String databaseName) {
     String result = super.transformInboundDatabaseName(databaseName);
     if (result.startsWith(getDatabasePrefix())) {
       return result.substring(getDatabasePrefix().length());
