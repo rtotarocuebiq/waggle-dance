@@ -97,7 +97,7 @@ public abstract class PanopticOperationHandler {
 
     for (Entry<DatabaseMapping, String> mappingWithPattern : databaseMappingsForPattern.entrySet()) {
       DatabaseMapping mapping = mappingWithPattern.getKey();
-      GetTableMetaRequest tableMetaRequest = new GetTableMetaRequest(mapping, mappingWithPattern.getValue(),
+      GetTableMetaRequest tableMetaRequest = new GetTableMetaRequest(mapping, MetaStoreUtils.prependNotNullCatToDbName(mapping.getCatalog(),mappingWithPattern.getValue()),
           tablePatterns, tableTypes, filter);
       allRequests.add(tableMetaRequest);
     }

@@ -44,6 +44,7 @@ import java.util.concurrent.Executors;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.conf.HiveConf.ConfVars;
 import org.apache.hadoop.hive.metastore.HiveMetaStoreClient;
+import org.apache.hadoop.hive.metastore.ObjectStore;
 import org.apache.hadoop.hive.metastore.api.Database;
 import org.apache.hadoop.hive.metastore.api.Function;
 import org.apache.hadoop.hive.metastore.api.FunctionType;
@@ -110,6 +111,7 @@ public class WaggleDanceIntegrationTest {
   static{
     hiveConfig.put("hive.in.test","true");
     hiveConfig.put("metastore.client.capability.check","false");
+    ObjectStore.setTwoMetastoreTesting(true);
   }
 
   public @Rule ThriftHiveMetaStoreJUnitRule localServer = new ThriftHiveMetaStoreJUnitRule(LOCAL_DATABASE,hiveConfig);

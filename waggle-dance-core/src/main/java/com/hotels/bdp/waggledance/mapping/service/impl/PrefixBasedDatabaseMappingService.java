@@ -326,12 +326,18 @@ public class PrefixBasedDatabaseMappingService implements MappingEventListener {
 
       @Override
       public List<TableMeta> getTableMeta(String db_patterns, String tbl_patterns, List<String> tbl_types) {
-        Map<DatabaseMapping, String> databaseMappingsForPattern = databaseMappingsByDbPattern(db_patterns);
+        try {
+          String internal_pattern = MetaStoreUtils.parseDbName(db_patterns, null)[DB_NAME];
+          Map<DatabaseMapping, String> databaseMappingsForPattern = databaseMappingsByDbPattern(internal_pattern);
 
-        BiFunction<TableMeta, DatabaseMapping, Boolean> filter = (tableMeta, mapping) -> databaseAndTableAllowed(
-            tableMeta.getDbName(), tableMeta.getTableName(), mapping);
+          BiFunction<TableMeta, DatabaseMapping, Boolean> filter = (tableMeta, mapping) -> databaseAndTableAllowed(
+              tableMeta.getDbName(), tableMeta.getTableName(), mapping);
 
-        return super.getTableMeta(tbl_patterns, tbl_types, databaseMappingsForPattern, filter);
+          return super.getTableMeta(tbl_patterns, tbl_types, databaseMappingsForPattern, filter);
+        }
+        catch (MetaException e) {
+          throw new RuntimeException(e);
+        }
       }
 
       @Override
