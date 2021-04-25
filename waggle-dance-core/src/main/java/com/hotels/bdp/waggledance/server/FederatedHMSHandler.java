@@ -153,7 +153,7 @@ import com.hotels.bdp.waggledance.metrics.Monitored;
 @Monitored
 @Component
 @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMSHandler {
+public abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMSHandler {
 
   private static final Logger LOG = LoggerFactory.getLogger(FederatedHMSHandler.class);
 
@@ -241,7 +241,7 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
   @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
   public Database get_database(String name) throws NoSuchObjectException, MetaException, TException {
     LOG.info("Fetching database {}", name);
-    String internal_name = parseDbName(name, null)[DB_NAME];
+    String internal_name = getDbInternalName(name);
     DatabaseMapping mapping = databaseMappingService.databaseMapping(internal_name);
     LOG.info("Mapping is '{}'", mapping.getDatabasePrefix());
     Database result = mapping.getClient().get_database(mapping.transformInboundDatabaseName(name));
@@ -271,7 +271,7 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
   @Override
   @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
   public void alter_database(String dbname, Database db) throws MetaException, NoSuchObjectException, TException {
-    String internal_name = parseDbName(dbname, null)[DB_NAME];
+    String internal_name = getDbInternalName(dbname);
     DatabaseMapping mapping = checkWritePermissions(internal_name);
     //    mapping.checkWritePermissions(db.getName());
     // changed for allowing db renaming
@@ -354,7 +354,7 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
       boolean deleteData,
       EnvironmentContext environment_context)
       throws NoSuchObjectException, MetaException, TException {
-    String internal_name = parseDbName(dbname,null)[DB_NAME];
+    String internal_name = getDbInternalName(dbname);
     DatabaseMapping mapping = checkWritePermissionsAndCheckTableAllowed(internal_name, name);
     mapping
         .getClient()
@@ -383,7 +383,7 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
   @Override
   @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
   public Table get_table(String dbname, String tbl_name) throws MetaException, NoSuchObjectException, TException {
-    String internal_name = parseDbName(dbname, null)[DB_NAME];
+    String internal_name = getDbInternalName(dbname);
     DatabaseMapping mapping = getDbMappingAndCheckTableAllowed(internal_name, tbl_name);
     Table table = mapping.getClient().get_table(mapping.transformInboundDatabaseName(dbname), tbl_name);
     return mapping
@@ -813,7 +813,7 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
   @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME, prepend=true)
   public List<Partition> get_partitions_by_names(String db_name, String tbl_name, List<String> names)
       throws MetaException, NoSuchObjectException, TException {
-    String internal_name = parseDbName(db_name, null)[DB_NAME];
+    String internal_name = getDbInternalName(db_name);
     DatabaseMapping mapping = getDbMappingAndCheckTableAllowed(internal_name, tbl_name);
     List<Partition> partitions = mapping
         .getClient()
@@ -1636,11 +1636,22 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
   @Override
   @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
   public GetTableResult get_table_req(GetTableRequest req) throws MetaException, NoSuchObjectException, TException {
-    String internal_name = parseDbName(req.getDbName(), null)[DB_NAME];
+    String internal_name = getDbInternalName(req.getDbName());
     DatabaseMapping mapping = getDbMappingAndCheckTableAllowed(internal_name, req.getTblName());
     GetTableResult result = mapping.getClient().get_table_req(mapping.transformInboundGetTableRequest(req));
     result.setTable(mapping.getMetastoreFilter().filterTable(result.getTable()));
     return mapping.transformOutboundGetTableResult(result);
+  }
+
+  public static String getDbInternalName(String dbName)
+  {
+    try {
+      String internalName = parseDbName(dbName, null)[DB_NAME];
+      return internalName!=null ? internalName : "";
+    }
+    catch (MetaException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Override

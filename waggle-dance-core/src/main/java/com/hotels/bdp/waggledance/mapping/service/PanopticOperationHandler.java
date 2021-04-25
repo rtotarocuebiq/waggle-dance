@@ -26,6 +26,7 @@ import java.util.function.BiFunction;
 
 import org.apache.hadoop.hive.metastore.HiveMetaStore.HMSHandler;
 import org.apache.hadoop.hive.metastore.api.GetAllFunctionsResponse;
+import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.hadoop.hive.metastore.api.TableMeta;
 import org.apache.hadoop.hive.metastore.utils.MetaStoreUtils;
 
@@ -60,7 +61,8 @@ public abstract class PanopticOperationHandler {
    * @param databasePattern pattern to match
    * @return list of all databases that match the passed pattern
    */
-  public abstract List<String> getAllDatabases(String databasePattern);
+  public abstract List<String> getAllDatabases(String databasePattern)
+          throws MetaException;
 
   protected List<String> getAllDatabases(
       Map<DatabaseMapping, String> databaseMappingsForPattern,
@@ -69,8 +71,10 @@ public abstract class PanopticOperationHandler {
 
     for (Entry<DatabaseMapping, String> mappingWithPattern : databaseMappingsForPattern.entrySet()) {
       DatabaseMapping mapping = mappingWithPattern.getKey();
+      //FIXME: export in a method
+      String pattern = mappingWithPattern.getValue().isEmpty()? null : "";
       GetAllDatabasesByPatternRequest databasesByPatternRequest = new GetAllDatabasesByPatternRequest(mapping,
-              MetaStoreUtils.prependNotNullCatToDbName(mapping.getCatalog(),mappingWithPattern.getValue()), filter);
+              MetaStoreUtils.prependNotNullCatToDbName(mapping.getCatalog(), pattern), filter);
       allRequests.add(databasesByPatternRequest);
     }
     List<String> result = getPanopticOperationExecutor()
@@ -86,7 +90,8 @@ public abstract class PanopticOperationHandler {
    * @param tableTypes table types to match
    * @return list of table metadata
    */
-  abstract public List<TableMeta> getTableMeta(String databasePatterns, String tablePatterns, List<String> tableTypes);
+  abstract public List<TableMeta> getTableMeta(String databasePatterns, String tablePatterns, List<String> tableTypes)
+          throws MetaException;
 
   protected List<TableMeta> getTableMeta(
       String tablePatterns,
@@ -97,7 +102,9 @@ public abstract class PanopticOperationHandler {
 
     for (Entry<DatabaseMapping, String> mappingWithPattern : databaseMappingsForPattern.entrySet()) {
       DatabaseMapping mapping = mappingWithPattern.getKey();
-      GetTableMetaRequest tableMetaRequest = new GetTableMetaRequest(mapping, MetaStoreUtils.prependNotNullCatToDbName(mapping.getCatalog(),mappingWithPattern.getValue()),
+      //FIXME: export in a method
+      String pattern = mappingWithPattern.getValue().isEmpty() ? null : "";
+      GetTableMetaRequest tableMetaRequest = new GetTableMetaRequest(mapping, MetaStoreUtils.prependNotNullCatToDbName(mapping.getCatalog(),pattern),
           tablePatterns, tableTypes, filter);
       allRequests.add(tableMetaRequest);
     }

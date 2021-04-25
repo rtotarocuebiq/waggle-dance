@@ -17,9 +17,6 @@ package com.hotels.bdp.waggledance.mapping.service.impl;
 
 import static java.util.stream.Collectors.toList;
 
-import static org.apache.hadoop.hive.metastore.utils.MetaStoreUtils.DB_NAME;
-import static org.apache.hadoop.hive.metastore.utils.MetaStoreUtils.parseDbName;
-
 import static com.hotels.bdp.waggledance.api.model.FederationType.PRIMARY;
 
 import java.io.IOException;
@@ -38,6 +35,7 @@ import java.util.function.BiFunction;
 
 import javax.validation.constraints.NotNull;
 
+import com.hotels.bdp.waggledance.server.FederatedHMSHandler;
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.hadoop.hive.metastore.api.NoSuchObjectException;
@@ -297,7 +295,7 @@ public class StaticDatabaseMappingService implements MappingEventListener {
 
   @Override
   public DatabaseMapping databaseMapping(@NotNull String databaseName) throws NoSuchObjectException {
-    DatabaseMapping databaseMapping = mappingsByDatabaseName.get(databaseName.toLowerCase(Locale.ROOT));
+    DatabaseMapping databaseMapping = mappingsByDatabaseName.get(FederatedHMSHandler.getDbInternalName(databaseName.toLowerCase(Locale.ROOT)));
     if (databaseMapping != null) {
       LOG
           .debug("Database Name `{}` maps to metastore with name '{}'", databaseName,
@@ -366,39 +364,29 @@ public class StaticDatabaseMappingService implements MappingEventListener {
 
       @Override
       public List<TableMeta> getTableMeta(String db_patterns, String tbl_patterns, List<String> tbl_types) {
-        try {
-          String internal_pattern = MetaStoreUtils.parseDbName(db_patterns, null)[DB_NAME];
+        String internal_pattern = FederatedHMSHandler.getDbInternalName(db_patterns);
 
-          BiFunction<TableMeta, DatabaseMapping, Boolean> filter = (tableMeta, mapping) ->
-              databaseAndTableAllowed(tableMeta.getDbName(), tableMeta.getTableName(), mapping);
+        BiFunction<TableMeta, DatabaseMapping, Boolean> filter = (tableMeta, mapping) ->
+            databaseAndTableAllowed(tableMeta.getDbName(), tableMeta.getTableName(), mapping);
 
-          Map<DatabaseMapping, String> mappingsForPattern = new LinkedHashMap<>();
-          for (DatabaseMapping mapping : getDatabaseMappings()) {
-            mappingsForPattern.put(mapping, internal_pattern);
-          }
-          return super.getTableMeta(tbl_patterns, tbl_types, mappingsForPattern, filter);
+        Map<DatabaseMapping, String> mappingsForPattern = new LinkedHashMap<>();
+        for (DatabaseMapping mapping : getDatabaseMappings()) {
+          mappingsForPattern.put(mapping, internal_pattern);
         }
-        catch (MetaException e) {
-          throw new RuntimeException(e);
-        }
+        return super.getTableMeta(tbl_patterns, tbl_types, mappingsForPattern, filter);
       }
 
       @Override
       public List<String> getAllDatabases(String pattern) {
-        try {
-          String internal_pattern = MetaStoreUtils.parseDbName(pattern, null)[DB_NAME];
-          BiFunction<String, DatabaseMapping, Boolean> filter = (database, mapping) -> isDbAllowed(database);
+        String internal_pattern = FederatedHMSHandler.getDbInternalName(pattern);
+        BiFunction<String, DatabaseMapping, Boolean> filter = (database, mapping) -> isDbAllowed(database);
 
-          Map<DatabaseMapping, String> mappingsForPattern = new LinkedHashMap<>();
-          for (DatabaseMapping mapping : getDatabaseMappings()) {
-            mappingsForPattern.put(mapping, internal_pattern);
-          }
+        Map<DatabaseMapping, String> mappingsForPattern = new LinkedHashMap<>();
+        for (DatabaseMapping mapping : getDatabaseMappings()) {
+          mappingsForPattern.put(mapping, internal_pattern);
+        }
 
-          return super.getAllDatabases(mappingsForPattern, filter);
-        }
-        catch (MetaException e) {
-          throw new RuntimeException(e);
-        }
+        return super.getAllDatabases(mappingsForPattern, filter);
       }
 
       @Override
@@ -415,14 +403,8 @@ public class StaticDatabaseMappingService implements MappingEventListener {
 
   private boolean isDbAllowed(String database)
   {
-    try {
-      String internal_name = parseDbName(database, null)[DB_NAME];
-      return mappingsByDatabaseName.containsKey(internal_name);
-    }
-    catch (MetaException e) {
-      //FIXME:
-      throw new RuntimeException(e);
-    }
+    String internal_name = FederatedHMSHandler.getDbInternalName(database);
+    return mappingsByDatabaseName.containsKey(internal_name);
   }
 
   @Override

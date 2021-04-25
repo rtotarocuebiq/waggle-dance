@@ -22,6 +22,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
+import com.hotels.bdp.waggledance.server.FederatedHMSHandler;
 import org.apache.hadoop.hive.metastore.MetaStoreFilterHook;
 import org.apache.hadoop.hive.metastore.api.AlreadyExistsException;
 import org.apache.hadoop.hive.metastore.api.Database;
@@ -131,18 +132,13 @@ class MetaStoreMappingImpl implements MetaStoreMapping {
   }
 
   @Override
-  public MetaStoreMapping checkWritePermissions(String databaseName) {
-    try {
-      String internal_name = parseDbName(databaseName, null)[DB_NAME];
-      if (!accessControlHandler.hasWritePermission(internal_name)) {
-        throw new NotAllowedException(
-                "You cannot perform this operation on the virtual database '" + databaseName + "'.");
-      }
-      return this;
+  public MetaStoreMapping checkWritePermissions(String databaseName){
+    String internal_name = FederatedHMSHandler.getDbInternalName(databaseName);
+    if (!accessControlHandler.hasWritePermission(internal_name)) {
+      throw new NotAllowedException(
+              "You cannot perform this operation on the virtual database '" + databaseName + "'.");
     }
-    catch (MetaException e) {
-      throw new RuntimeException(e);
-    }
+    return this;
   }
 
   @Override

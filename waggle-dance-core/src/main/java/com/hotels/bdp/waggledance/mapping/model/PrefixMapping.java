@@ -32,10 +32,16 @@ public class PrefixMapping extends MetaStoreMappingDecorator {
   }
 
   @Override
-  public String transformOutboundDatabaseName(String databaseName) {
-    try {
+  public String transformOutboundDatabaseName(String databaseName)  {
       if(hasCatalogName(databaseName)) {
-        String[] catalogAndDatabase = parseDbName(databaseName, null);
+        String[] catalogAndDatabase = new String[0];
+        try {
+          catalogAndDatabase = parseDbName(databaseName, null);
+        }
+        catch (MetaException e) {
+          //FIXME
+          throw new RuntimeException(e);
+        }
         String dbName = catalogAndDatabase[DB_NAME];
         String catalogName = catalogAndDatabase[CAT_NAME];
         String prefixedDbName = getDatabasePrefix() + super.transformOutboundDatabaseName(dbName);
@@ -43,11 +49,6 @@ public class PrefixMapping extends MetaStoreMappingDecorator {
       }else {
         return getDatabasePrefix() + super.transformOutboundDatabaseName(databaseName);
       }
-    }
-    catch (MetaException e) {
-      //FIXME:
-      throw new RuntimeException(e);
-    }
   }
 
   private static boolean hasCatalogName(String dbName) {
@@ -67,19 +68,20 @@ public class PrefixMapping extends MetaStoreMappingDecorator {
 
   @Override
   public String transformInboundDatabaseName(String databaseName) {
-    try {
-      if(hasCatalogName(databaseName)) {
-        String[] catalogAndDatabase = parseDbName(databaseName, null);
-        String dbName = catalogAndDatabase[DB_NAME];
-        String catalogName = catalogAndDatabase[CAT_NAME];
-        return prependNotNullCatToDbName(catalogName, internalTransformInboundDatabaseName(dbName));
+    if(hasCatalogName(databaseName)) {
+      String[] catalogAndDatabase = new String[0];
+      try {
+        catalogAndDatabase = parseDbName(databaseName, null);
       }
-      return internalTransformInboundDatabaseName(databaseName);
+      catch (MetaException e) {
+        //FIXME
+        throw new RuntimeException(e);
+      }
+      String dbName = catalogAndDatabase[DB_NAME];
+      String catalogName = catalogAndDatabase[CAT_NAME];
+      return prependNotNullCatToDbName(catalogName, internalTransformInboundDatabaseName(dbName));
     }
-    catch (MetaException e) {
-      //FIXME:
-      throw new RuntimeException(e);
-    }
+    return internalTransformInboundDatabaseName(databaseName);
   }
 
   private String internalTransformInboundDatabaseName(String databaseName) {
