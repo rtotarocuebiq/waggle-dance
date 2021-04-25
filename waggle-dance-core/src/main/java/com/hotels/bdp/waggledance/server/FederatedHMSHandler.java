@@ -813,10 +813,11 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
   @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME, prepend=true)
   public List<Partition> get_partitions_by_names(String db_name, String tbl_name, List<String> names)
       throws MetaException, NoSuchObjectException, TException {
-    DatabaseMapping mapping = getDbMappingAndCheckTableAllowed(db_name, tbl_name);
+    String internal_name = parseDbName(db_name, null)[DB_NAME];
+    DatabaseMapping mapping = getDbMappingAndCheckTableAllowed(internal_name, tbl_name);
     List<Partition> partitions = mapping
         .getClient()
-        .get_partitions_by_names(mapping.transformInboundDatabaseName(db_name), tbl_name, names);
+        .get_partitions_by_names(mapping.transformInboundDatabaseName(internal_name), tbl_name, names);
     return mapping.transformOutboundPartitions(mapping.getMetastoreFilter().filterPartitions(partitions));
   }
 

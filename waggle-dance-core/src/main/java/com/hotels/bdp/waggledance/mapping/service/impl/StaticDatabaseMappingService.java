@@ -18,6 +18,7 @@ package com.hotels.bdp.waggledance.mapping.service.impl;
 import static java.util.stream.Collectors.toList;
 
 import static org.apache.hadoop.hive.metastore.utils.MetaStoreUtils.DB_NAME;
+import static org.apache.hadoop.hive.metastore.utils.MetaStoreUtils.parseDbName;
 
 import static com.hotels.bdp.waggledance.api.model.FederationType.PRIMARY;
 
@@ -312,7 +313,8 @@ public class StaticDatabaseMappingService implements MappingEventListener {
   @Override
   public void checkTableAllowed(String databaseName, String tableName,
       DatabaseMapping mapping) throws NoSuchObjectException {
-    if (!isTableAllowed(databaseName, tableName)) {
+    String transformedDbName = mapping.transformInboundDatabaseName(databaseName);
+    if (!isTableAllowed(transformedDbName, tableName)) {
       throw new NoSuchObjectException(String.format("%s.%s table not found in any mappings", databaseName, tableName));
     }
   }
@@ -385,8 +387,7 @@ public class StaticDatabaseMappingService implements MappingEventListener {
       public List<String> getAllDatabases(String pattern) {
         try {
           String internal_pattern = MetaStoreUtils.parseDbName(pattern, null)[DB_NAME];
-          BiFunction<String, DatabaseMapping, Boolean> filter = (database, mapping) -> mappingsByDatabaseName
-              .containsKey(database);
+          BiFunction<String, DatabaseMapping, Boolean> filter = (database, mapping) -> isDbAllowed(database);
 
           Map<DatabaseMapping, String> mappingsForPattern = new LinkedHashMap<>();
           for (DatabaseMapping mapping : getDatabaseMappings()) {
@@ -410,6 +411,18 @@ public class StaticDatabaseMappingService implements MappingEventListener {
         return new PanopticConcurrentOperationExecutor();
       }
     };
+  }
+
+  private boolean isDbAllowed(String database)
+  {
+    try {
+      String internal_name = parseDbName(database, null)[DB_NAME];
+      return mappingsByDatabaseName.containsKey(internal_name);
+    }
+    catch (MetaException e) {
+      //FIXME:
+      throw new RuntimeException(e);
+    }
   }
 
   @Override
