@@ -71,15 +71,19 @@ public abstract class PanopticOperationHandler {
 
     for (Entry<DatabaseMapping, String> mappingWithPattern : databaseMappingsForPattern.entrySet()) {
       DatabaseMapping mapping = mappingWithPattern.getKey();
-      //FIXME: export in a method
-      String pattern = mappingWithPattern.getValue().isEmpty()? null : "";
       GetAllDatabasesByPatternRequest databasesByPatternRequest = new GetAllDatabasesByPatternRequest(mapping,
-              MetaStoreUtils.prependNotNullCatToDbName(mapping.getCatalog(), pattern), filter);
+              createInboundPattern(mappingWithPattern, mapping), filter);
       allRequests.add(databasesByPatternRequest);
     }
     List<String> result = getPanopticOperationExecutor()
         .executeRequests(allRequests, GET_DATABASES_TIMEOUT, "Can't fetch databases by pattern: {}");
     return result;
+  }
+
+  private String createInboundPattern(Entry<DatabaseMapping, String> mappingWithPattern, DatabaseMapping mapping)
+  {
+    String pattern = mappingWithPattern.getValue().equals("*") ? null : "*";
+    return MetaStoreUtils.prependNotNullCatToDbName(mapping.getCatalog(), pattern);
   }
 
   /**
@@ -102,9 +106,7 @@ public abstract class PanopticOperationHandler {
 
     for (Entry<DatabaseMapping, String> mappingWithPattern : databaseMappingsForPattern.entrySet()) {
       DatabaseMapping mapping = mappingWithPattern.getKey();
-      //FIXME: export in a method
-      String pattern = mappingWithPattern.getValue().isEmpty() ? null : "";
-      GetTableMetaRequest tableMetaRequest = new GetTableMetaRequest(mapping, MetaStoreUtils.prependNotNullCatToDbName(mapping.getCatalog(),pattern),
+      GetTableMetaRequest tableMetaRequest = new GetTableMetaRequest(mapping, createInboundPattern(mappingWithPattern, mapping),
           tablePatterns, tableTypes, filter);
       allRequests.add(tableMetaRequest);
     }

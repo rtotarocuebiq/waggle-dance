@@ -223,7 +223,7 @@ public abstract class AbstractMetaStore {
 
   @Override
   public int hashCode() {
-    return Objects.hashCode(name);
+    return Objects.hashCode(name, catalog);
   }
 
   @Override
@@ -235,7 +235,7 @@ public abstract class AbstractMetaStore {
       return false;
     }
     final AbstractMetaStore other = (AbstractMetaStore) obj;
-    return Objects.equal(name, other.name);
+    return Objects.equal(name, other.name) && Objects.equal(catalog, other.catalog);
   }
 
   @Override

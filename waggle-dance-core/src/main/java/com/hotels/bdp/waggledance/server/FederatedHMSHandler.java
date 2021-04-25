@@ -1647,7 +1647,7 @@ public abstract class FederatedHMSHandler extends FacebookBase implements Closea
   {
     try {
       String internalName = parseDbName(dbName, null)[DB_NAME];
-      return internalName!=null ? internalName : "";
+      return internalName!=null ? internalName : "*";
     }
     catch (MetaException e) {
       throw new RuntimeException(e);

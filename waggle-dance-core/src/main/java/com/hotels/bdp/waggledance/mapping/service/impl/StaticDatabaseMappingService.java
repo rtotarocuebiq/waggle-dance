@@ -35,12 +35,9 @@ import java.util.function.BiFunction;
 
 import javax.validation.constraints.NotNull;
 
-import com.hotels.bdp.waggledance.server.FederatedHMSHandler;
 import org.apache.commons.io.IOUtils;
-import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.hadoop.hive.metastore.api.NoSuchObjectException;
 import org.apache.hadoop.hive.metastore.api.TableMeta;
-import org.apache.hadoop.hive.metastore.utils.MetaStoreUtils;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,6 +63,7 @@ import com.hotels.bdp.waggledance.mapping.service.MetaStoreMappingFactory;
 import com.hotels.bdp.waggledance.mapping.service.PanopticConcurrentOperationExecutor;
 import com.hotels.bdp.waggledance.mapping.service.PanopticOperationExecutor;
 import com.hotels.bdp.waggledance.mapping.service.PanopticOperationHandler;
+import com.hotels.bdp.waggledance.server.FederatedHMSHandler;
 import com.hotels.bdp.waggledance.server.NoPrimaryMetastoreException;
 import com.hotels.bdp.waggledance.util.AllowList;
 
@@ -211,7 +209,7 @@ public class StaticDatabaseMappingService implements MappingEventListener {
 
   private void addDatabaseMappings(List<String> databases, DatabaseMapping databaseMapping) {
     for (String databaseName : databases) {
-      mappingsByDatabaseName.put(databaseName, databaseMapping);
+      mappingsByDatabaseName.put(databaseMapping.transformOutboundDatabaseName(databaseName), databaseMapping);
     }
   }
 
@@ -386,7 +384,7 @@ public class StaticDatabaseMappingService implements MappingEventListener {
           mappingsForPattern.put(mapping, internal_pattern);
         }
 
-        return super.getAllDatabases(mappingsForPattern, filter);
+        return new ArrayList<String>(new HashSet<String>(super.getAllDatabases(mappingsForPattern, filter)));
       }
 
       @Override

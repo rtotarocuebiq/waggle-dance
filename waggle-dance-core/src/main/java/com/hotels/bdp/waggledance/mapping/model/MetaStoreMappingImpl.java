@@ -22,7 +22,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
-import com.hotels.bdp.waggledance.server.FederatedHMSHandler;
 import org.apache.hadoop.hive.metastore.MetaStoreFilterHook;
 import org.apache.hadoop.hive.metastore.api.AlreadyExistsException;
 import org.apache.hadoop.hive.metastore.api.Database;
@@ -35,6 +34,7 @@ import org.slf4j.LoggerFactory;
 
 import com.hotels.bdp.waggledance.api.model.ConnectionType;
 import com.hotels.bdp.waggledance.client.CloseableThriftHiveMetastoreIface;
+import com.hotels.bdp.waggledance.server.FederatedHMSHandler;
 import com.hotels.bdp.waggledance.server.security.AccessControlHandler;
 import com.hotels.bdp.waggledance.server.security.NotAllowedException;
 

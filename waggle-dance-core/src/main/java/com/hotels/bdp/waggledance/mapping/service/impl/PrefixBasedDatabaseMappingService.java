@@ -15,7 +15,6 @@
  */
 package com.hotels.bdp.waggledance.mapping.service.impl;
 
-import static org.apache.hadoop.hive.metastore.utils.MetaStoreUtils.DB_NAME;
 import static com.hotels.bdp.waggledance.api.model.FederationType.PRIMARY;
 
 import java.io.IOException;
@@ -31,14 +30,11 @@ import java.util.function.BiFunction;
 
 import javax.validation.constraints.NotNull;
 
-import com.hotels.bdp.waggledance.server.FederatedHMSHandler;
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.hive.metastore.api.Function;
 import org.apache.hadoop.hive.metastore.api.GetAllFunctionsResponse;
-import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.hadoop.hive.metastore.api.NoSuchObjectException;
 import org.apache.hadoop.hive.metastore.api.TableMeta;
-import org.apache.hadoop.hive.metastore.utils.MetaStoreUtils;
 import org.apache.logging.log4j.util.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,6 +57,7 @@ import com.hotels.bdp.waggledance.mapping.service.PanopticConcurrentOperationExe
 import com.hotels.bdp.waggledance.mapping.service.PanopticOperationExecutor;
 import com.hotels.bdp.waggledance.mapping.service.PanopticOperationHandler;
 import com.hotels.bdp.waggledance.mapping.service.requests.GetAllDatabasesRequest;
+import com.hotels.bdp.waggledance.server.FederatedHMSHandler;
 import com.hotels.bdp.waggledance.server.NoPrimaryMetastoreException;
 import com.hotels.bdp.waggledance.util.AllowList;
 
