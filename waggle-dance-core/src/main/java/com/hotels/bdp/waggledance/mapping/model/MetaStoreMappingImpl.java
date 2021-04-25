@@ -15,6 +15,8 @@
  */
 package com.hotels.bdp.waggledance.mapping.model;
 
+import static org.apache.hadoop.hive.metastore.utils.MetaStoreUtils.*;
+
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
@@ -34,8 +36,6 @@ import com.hotels.bdp.waggledance.api.model.ConnectionType;
 import com.hotels.bdp.waggledance.client.CloseableThriftHiveMetastoreIface;
 import com.hotels.bdp.waggledance.server.security.AccessControlHandler;
 import com.hotels.bdp.waggledance.server.security.NotAllowedException;
-
-import static org.apache.hadoop.hive.metastore.utils.MetaStoreUtils.*;
 
 class MetaStoreMappingImpl implements MetaStoreMapping {
 

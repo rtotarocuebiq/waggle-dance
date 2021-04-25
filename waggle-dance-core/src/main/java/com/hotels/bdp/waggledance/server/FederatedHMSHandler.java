@@ -15,6 +15,8 @@
  */
 package com.hotels.bdp.waggledance.server;
 
+import static org.apache.hadoop.hive.metastore.utils.MetaStoreUtils.*;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -147,8 +149,6 @@ import com.hotels.bdp.waggledance.mapping.model.DatabaseMapping;
 import com.hotels.bdp.waggledance.mapping.service.MappingEventListener;
 import com.hotels.bdp.waggledance.mapping.service.impl.NotifyingFederationService;
 import com.hotels.bdp.waggledance.metrics.Monitored;
-
-import static org.apache.hadoop.hive.metastore.utils.MetaStoreUtils.*;
 
 @Monitored
 @Component
@@ -354,7 +354,8 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
       boolean deleteData,
       EnvironmentContext environment_context)
       throws NoSuchObjectException, MetaException, TException {
-    DatabaseMapping mapping = checkWritePermissionsAndCheckTableAllowed(dbname, name);
+    String internal_name = parseDbName(dbname,null)[DB_NAME];
+    DatabaseMapping mapping = checkWritePermissionsAndCheckTableAllowed(internal_name, name);
     mapping
         .getClient()
         .drop_table_with_environment_context(mapping.transformInboundDatabaseName(dbname), name, deleteData,
@@ -1634,7 +1635,8 @@ abstract class FederatedHMSHandler extends FacebookBase implements CloseableIHMS
   @Override
   @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
   public GetTableResult get_table_req(GetTableRequest req) throws MetaException, NoSuchObjectException, TException {
-    DatabaseMapping mapping = getDbMappingAndCheckTableAllowed(req.getDbName(), req.getTblName());
+    String internal_name = parseDbName(req.getDbName(), null)[DB_NAME];
+    DatabaseMapping mapping = getDbMappingAndCheckTableAllowed(internal_name, req.getTblName());
     GetTableResult result = mapping.getClient().get_table_req(mapping.transformInboundGetTableRequest(req));
     result.setTable(mapping.getMetastoreFilter().filterTable(result.getTable()));
     return mapping.transformOutboundGetTableResult(result);

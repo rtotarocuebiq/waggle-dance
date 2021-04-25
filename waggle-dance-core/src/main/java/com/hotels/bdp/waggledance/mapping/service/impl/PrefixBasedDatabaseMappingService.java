@@ -15,9 +15,10 @@
  */
 package com.hotels.bdp.waggledance.mapping.service.impl;
 
-import static com.hotels.bdp.waggledance.api.model.FederationType.PRIMARY;
 import static org.apache.hadoop.hive.metastore.utils.MetaStoreUtils.DB_NAME;
 import static org.apache.hadoop.hive.metastore.utils.MetaStoreUtils.parseDbName;
+
+import static com.hotels.bdp.waggledance.api.model.FederationType.PRIMARY;
 
 import java.io.IOException;
 import java.util.ArrayList;

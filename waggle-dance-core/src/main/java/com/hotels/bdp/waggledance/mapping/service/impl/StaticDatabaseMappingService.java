@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2016-2020 Expedia, Inc.
+ * Copyright (C) 2016-2021 Expedia, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,8 @@
 package com.hotels.bdp.waggledance.mapping.service.impl;
 
 import static java.util.stream.Collectors.toList;
+
+import static org.apache.hadoop.hive.metastore.utils.MetaStoreUtils.DB_NAME;
 
 import static com.hotels.bdp.waggledance.api.model.FederationType.PRIMARY;
 
@@ -36,8 +38,10 @@ import java.util.function.BiFunction;
 import javax.validation.constraints.NotNull;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.hadoop.hive.metastore.api.NoSuchObjectException;
 import org.apache.hadoop.hive.metastore.api.TableMeta;
+import org.apache.hadoop.hive.metastore.utils.MetaStoreUtils;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -360,28 +364,40 @@ public class StaticDatabaseMappingService implements MappingEventListener {
 
       @Override
       public List<TableMeta> getTableMeta(String db_patterns, String tbl_patterns, List<String> tbl_types) {
+        try {
+          String internal_pattern = MetaStoreUtils.parseDbName(db_patterns, null)[DB_NAME];
 
-        BiFunction<TableMeta, DatabaseMapping, Boolean> filter = (tableMeta, mapping) ->
-            databaseAndTableAllowed(tableMeta.getDbName(), tableMeta.getTableName(), mapping);
+          BiFunction<TableMeta, DatabaseMapping, Boolean> filter = (tableMeta, mapping) ->
+              databaseAndTableAllowed(tableMeta.getDbName(), tableMeta.getTableName(), mapping);
 
-        Map<DatabaseMapping, String> mappingsForPattern = new LinkedHashMap<>();
-        for (DatabaseMapping mapping : getDatabaseMappings()) {
-          mappingsForPattern.put(mapping, db_patterns);
+          Map<DatabaseMapping, String> mappingsForPattern = new LinkedHashMap<>();
+          for (DatabaseMapping mapping : getDatabaseMappings()) {
+            mappingsForPattern.put(mapping, internal_pattern);
+          }
+          return super.getTableMeta(tbl_patterns, tbl_types, mappingsForPattern, filter);
         }
-        return super.getTableMeta(tbl_patterns, tbl_types, mappingsForPattern, filter);
+        catch (MetaException e) {
+          throw new RuntimeException(e);
+        }
       }
 
       @Override
       public List<String> getAllDatabases(String pattern) {
-        BiFunction<String, DatabaseMapping, Boolean> filter = (database, mapping) -> mappingsByDatabaseName
-            .containsKey(database);
+        try {
+          String internal_pattern = MetaStoreUtils.parseDbName(pattern, null)[DB_NAME];
+          BiFunction<String, DatabaseMapping, Boolean> filter = (database, mapping) -> mappingsByDatabaseName
+              .containsKey(database);
 
-        Map<DatabaseMapping, String> mappingsForPattern = new LinkedHashMap<>();
-        for (DatabaseMapping mapping : getDatabaseMappings()) {
-          mappingsForPattern.put(mapping, pattern);
+          Map<DatabaseMapping, String> mappingsForPattern = new LinkedHashMap<>();
+          for (DatabaseMapping mapping : getDatabaseMappings()) {
+            mappingsForPattern.put(mapping, internal_pattern);
+          }
+
+          return super.getAllDatabases(mappingsForPattern, filter);
         }
-
-        return super.getAllDatabases(mappingsForPattern, filter);
+        catch (MetaException e) {
+          throw new RuntimeException(e);
+        }
       }
 
       @Override

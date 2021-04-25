@@ -27,13 +27,13 @@ import java.util.function.BiFunction;
 import org.apache.hadoop.hive.metastore.HiveMetaStore.HMSHandler;
 import org.apache.hadoop.hive.metastore.api.GetAllFunctionsResponse;
 import org.apache.hadoop.hive.metastore.api.TableMeta;
+import org.apache.hadoop.hive.metastore.utils.MetaStoreUtils;
 
 import com.hotels.bdp.waggledance.mapping.model.DatabaseMapping;
 import com.hotels.bdp.waggledance.mapping.service.requests.GetAllDatabasesByPatternRequest;
 import com.hotels.bdp.waggledance.mapping.service.requests.GetAllFunctionsRequest;
 import com.hotels.bdp.waggledance.mapping.service.requests.GetTableMetaRequest;
 import com.hotels.bdp.waggledance.mapping.service.requests.SetUgiRequest;
-import org.apache.hadoop.hive.metastore.utils.MetaStoreUtils;
 
 /**
  * Class responsible for handling the Hive operations that need to combine results from multiple Hive Metastores
