@@ -82,8 +82,12 @@ public abstract class PanopticOperationHandler {
 
   private String createInboundPattern(Entry<DatabaseMapping, String> mappingWithPattern, DatabaseMapping mapping)
   {
-    String pattern = mappingWithPattern.getValue().equals("*") ? null : "*";
-    return MetaStoreUtils.prependNotNullCatToDbName(mapping.getCatalog(), pattern);
+    String pattern = mappingWithPattern.getValue();
+    if(pattern.startsWith("@")) {
+      String sanifiedPattern = mappingWithPattern.getValue().equals("*") ? null : mappingWithPattern.getValue();
+      pattern = MetaStoreUtils.prependCatalogToDbName(mapping.getCatalog(), pattern,null);
+    }
+    return pattern;
   }
 
   /**

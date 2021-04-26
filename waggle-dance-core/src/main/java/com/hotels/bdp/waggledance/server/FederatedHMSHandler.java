@@ -374,10 +374,11 @@ public abstract class FederatedHMSHandler extends FacebookBase implements Closea
   @Override
   @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
   public List<String> get_all_tables(String db_name) throws MetaException, TException {
-    DatabaseMapping mapping = databaseMappingService.databaseMapping(db_name);
+    String internal_name = getDbInternalName(db_name);
+    DatabaseMapping mapping = databaseMappingService.databaseMapping(internal_name);
     List<String> resultTables =  mapping.getClient().get_all_tables(mapping.transformInboundDatabaseName(db_name));
-    resultTables = databaseMappingService.filterTables(db_name, resultTables, mapping);
-    return mapping.getMetastoreFilter().filterTableNames(mapping.getCatalog(), db_name, resultTables);
+    resultTables = databaseMappingService.filterTables(internal_name, resultTables, mapping);
+    return mapping.getMetastoreFilter().filterTableNames(mapping.getCatalog(), internal_name, resultTables);
   }
 
   @Override

@@ -18,6 +18,7 @@ package com.hotels.bdp.waggledance;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.CoreMatchers.startsWith;
+import static org.hamcrest.collection.IsIterableContainingInAnyOrder.containsInAnyOrder;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
@@ -339,7 +340,7 @@ public class WaggleDanceIntegrationTest {
     }
   }
 
-//  @Test
+  //@Test
   public void typicalWithGraphite() throws Exception {
     runner = WaggleDanceRunner
         .builder(configLocation)
@@ -1014,11 +1015,8 @@ public class WaggleDanceIntegrationTest {
 
     List<String> allDatabases = proxy.getAllDatabases();
     assertThat(allDatabases.size(), is(5));
-    assertThat(allDatabases.get(0), is("default"));
-    assertThat(allDatabases.get(1), is(LOCAL_DATABASE));
-    assertThat(allDatabases.get(2), is("abc"));
-    assertThat(allDatabases.get(3), is(REMOTE_DATABASE));
-    assertThat(allDatabases.get(4), is("xyz"));
+    String[] expected = new String[]{"default", LOCAL_DATABASE, "abc", REMOTE_DATABASE, "xyz"};
+    assertThat("List equality without order", allDatabases, containsInAnyOrder(expected));
     // Local table
     Table waggledLocalTable = proxy.getTable("abc", LOCAL_TABLE);
     assertNotNull(waggledLocalTable);

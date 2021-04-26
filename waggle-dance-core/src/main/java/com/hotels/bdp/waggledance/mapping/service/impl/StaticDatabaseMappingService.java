@@ -209,7 +209,7 @@ public class StaticDatabaseMappingService implements MappingEventListener {
 
   private void addDatabaseMappings(List<String> databases, DatabaseMapping databaseMapping) {
     for (String databaseName : databases) {
-      mappingsByDatabaseName.put(databaseMapping.transformOutboundDatabaseName(databaseName), databaseMapping);
+      mappingsByDatabaseName.put(databaseName, databaseMapping);
     }
   }
 
@@ -309,8 +309,7 @@ public class StaticDatabaseMappingService implements MappingEventListener {
   @Override
   public void checkTableAllowed(String databaseName, String tableName,
       DatabaseMapping mapping) throws NoSuchObjectException {
-    String transformedDbName = mapping.transformInboundDatabaseName(databaseName);
-    if (!isTableAllowed(transformedDbName, tableName)) {
+    if (!isTableAllowed(databaseName, tableName)) {
       throw new NoSuchObjectException(String.format("%s.%s table not found in any mappings", databaseName, tableName));
     }
   }
