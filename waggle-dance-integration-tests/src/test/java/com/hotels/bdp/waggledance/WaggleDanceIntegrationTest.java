@@ -18,8 +18,8 @@ package com.hotels.bdp.waggledance;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.CoreMatchers.startsWith;
-import static org.hamcrest.collection.IsIterableContainingInAnyOrder.containsInAnyOrder;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.collection.IsIterableContainingInAnyOrder.containsInAnyOrder;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
@@ -340,7 +340,7 @@ public class WaggleDanceIntegrationTest {
     }
   }
 
-  //@Test
+  @Test
   public void typicalWithGraphite() throws Exception {
     runner = WaggleDanceRunner
         .builder(configLocation)
@@ -361,17 +361,17 @@ public class WaggleDanceIntegrationTest {
 
     Set<String> metrics = new TreeSet<>(Arrays.asList(new String(graphite.getOutput()).split("\n")));
     assertMetric(metrics,
-        "graphitePrefix.counter.com.hotels.bdp.waggledance.server.FederatedHMSHandlerHive3.get_all_databases.all.calls.count 2");
+        "graphitePrefix.counter.com.hotels.bdp.waggledance.server.FederatedHMSHandler.get_all_databases.all.calls.count 2");
     assertMetric(metrics,
-        "graphitePrefix.counter.com.hotels.bdp.waggledance.server.FederatedHMSHandlerHive3.get_all_databases.all.success.count 2");
+        "graphitePrefix.counter.com.hotels.bdp.waggledance.server.FederatedHMSHandler.get_all_databases.all.success.count 2");
     assertMetric(metrics,
-        "graphitePrefix.counter.com.hotels.bdp.waggledance.server.FederatedHMSHandlerHive3.get_table_req.primary.calls.count 1");
+        "graphitePrefix.counter.com.hotels.bdp.waggledance.server.FederatedHMSHandler.get_table_req.primary.calls.count 1");
     assertMetric(metrics,
-        "graphitePrefix.counter.com.hotels.bdp.waggledance.server.FederatedHMSHandlerHive3.get_table_req.primary.success.count 1");
+        "graphitePrefix.counter.com.hotels.bdp.waggledance.server.FederatedHMSHandler.get_table_req.primary.success.count 1");
     assertMetric(metrics,
-        "graphitePrefix.counter.com.hotels.bdp.waggledance.server.FederatedHMSHandlerHive3.get_table_req.remote.calls.count 1");
+        "graphitePrefix.counter.com.hotels.bdp.waggledance.server.FederatedHMSHandler.get_table_req.remote.calls.count 1");
     assertMetric(metrics,
-        "graphitePrefix.counter.com.hotels.bdp.waggledance.server.FederatedHMSHandlerHive3.get_table_req.remote.success.count 1");
+        "graphitePrefix.counter.com.hotels.bdp.waggledance.server.FederatedHMSHandler.get_table_req.remote.success.count 1");
   }
 
   private void assertMetric(Set<String> metrics, String partialMetric) {
