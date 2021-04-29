@@ -31,6 +31,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.common.FileUtils;
 import org.apache.hadoop.hive.common.ObjectPair;
+import org.apache.hadoop.hive.common.ValidReadTxnList;
 import org.apache.hadoop.hive.common.ValidTxnList;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.conf.HiveConf.ConfVars;
@@ -39,12 +40,19 @@ import org.apache.hadoop.hive.metastore.IMetaStoreClient;
 import org.apache.hadoop.hive.metastore.PartitionDropOptions;
 import org.apache.hadoop.hive.metastore.TableType;
 import org.apache.hadoop.hive.metastore.Warehouse;
+import org.apache.hadoop.hive.metastore.api.AbortTxnRequest;
 import org.apache.hadoop.hive.metastore.api.AbortTxnsRequest;
 import org.apache.hadoop.hive.metastore.api.AddDynamicPartitions;
+import org.apache.hadoop.hive.metastore.api.AddForeignKeyRequest;
 import org.apache.hadoop.hive.metastore.api.AddPartitionsRequest;
 import org.apache.hadoop.hive.metastore.api.AddPartitionsResult;
+import org.apache.hadoop.hive.metastore.api.AddPrimaryKeyRequest;
 import org.apache.hadoop.hive.metastore.api.AggrStats;
+import org.apache.hadoop.hive.metastore.api.CacheFileMetadataRequest;
+import org.apache.hadoop.hive.metastore.api.CacheFileMetadataResult;
 import org.apache.hadoop.hive.metastore.api.CheckLockRequest;
+import org.apache.hadoop.hive.metastore.api.ClearFileMetadataRequest;
+import org.apache.hadoop.hive.metastore.api.ClearFileMetadataResult;
 import org.apache.hadoop.hive.metastore.api.ColumnStatistics;
 import org.apache.hadoop.hive.metastore.api.ColumnStatisticsData;
 import org.apache.hadoop.hive.metastore.api.ColumnStatisticsDesc;
@@ -57,6 +65,7 @@ import org.apache.hadoop.hive.metastore.api.ConfigValSecurityException;
 import org.apache.hadoop.hive.metastore.api.CurrentNotificationEventId;
 import org.apache.hadoop.hive.metastore.api.DataOperationType;
 import org.apache.hadoop.hive.metastore.api.Database;
+import org.apache.hadoop.hive.metastore.api.DropConstraintRequest;
 import org.apache.hadoop.hive.metastore.api.DropPartitionsExpr;
 import org.apache.hadoop.hive.metastore.api.DropPartitionsRequest;
 import org.apache.hadoop.hive.metastore.api.DropPartitionsResult;
@@ -65,14 +74,21 @@ import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.FireEventRequest;
 import org.apache.hadoop.hive.metastore.api.FireEventResponse;
 import org.apache.hadoop.hive.metastore.api.ForeignKeysRequest;
+import org.apache.hadoop.hive.metastore.api.ForeignKeysResponse;
 import org.apache.hadoop.hive.metastore.api.Function;
 import org.apache.hadoop.hive.metastore.api.GetAllFunctionsResponse;
+import org.apache.hadoop.hive.metastore.api.GetFileMetadataByExprRequest;
+import org.apache.hadoop.hive.metastore.api.GetFileMetadataByExprResult;
+import org.apache.hadoop.hive.metastore.api.GetFileMetadataRequest;
+import org.apache.hadoop.hive.metastore.api.GetFileMetadataResult;
 import org.apache.hadoop.hive.metastore.api.GetOpenTxnsInfoResponse;
 import org.apache.hadoop.hive.metastore.api.GetOpenTxnsResponse;
 import org.apache.hadoop.hive.metastore.api.GetRoleGrantsForPrincipalRequest;
 import org.apache.hadoop.hive.metastore.api.GetRoleGrantsForPrincipalResponse;
 import org.apache.hadoop.hive.metastore.api.GrantRevokePrivilegeRequest;
 import org.apache.hadoop.hive.metastore.api.GrantRevokePrivilegeResponse;
+import org.apache.hadoop.hive.metastore.api.GrantRevokeRoleRequest;
+import org.apache.hadoop.hive.metastore.api.GrantRevokeRoleResponse;
 import org.apache.hadoop.hive.metastore.api.HeartbeatRequest;
 import org.apache.hadoop.hive.metastore.api.HeartbeatTxnRangeRequest;
 import org.apache.hadoop.hive.metastore.api.HeartbeatTxnRangeResponse;
@@ -90,16 +106,29 @@ import org.apache.hadoop.hive.metastore.api.MetadataPpdResult;
 import org.apache.hadoop.hive.metastore.api.NoSuchLockException;
 import org.apache.hadoop.hive.metastore.api.NoSuchObjectException;
 import org.apache.hadoop.hive.metastore.api.NoSuchTxnException;
+import org.apache.hadoop.hive.metastore.api.NotificationEventRequest;
 import org.apache.hadoop.hive.metastore.api.NotificationEventResponse;
+import org.apache.hadoop.hive.metastore.api.OpenTxnRequest;
 import org.apache.hadoop.hive.metastore.api.OpenTxnsResponse;
 import org.apache.hadoop.hive.metastore.api.PartitionEventType;
 import org.apache.hadoop.hive.metastore.api.PartitionSpec;
+import org.apache.hadoop.hive.metastore.api.PartitionsByExprRequest;
+import org.apache.hadoop.hive.metastore.api.PartitionsByExprResult;
 import org.apache.hadoop.hive.metastore.api.PartitionsStatsRequest;
 import org.apache.hadoop.hive.metastore.api.PrimaryKeysRequest;
+import org.apache.hadoop.hive.metastore.api.PrimaryKeysResponse;
 import org.apache.hadoop.hive.metastore.api.PrincipalType;
+import org.apache.hadoop.hive.metastore.api.PutFileMetadataRequest;
+import org.apache.hadoop.hive.metastore.api.PutFileMetadataResult;
 import org.apache.hadoop.hive.metastore.api.RequestPartsSpec;
+import org.apache.hadoop.hive.metastore.api.SQLCheckConstraint;
+import org.apache.hadoop.hive.metastore.api.SQLDefaultConstraint;
 import org.apache.hadoop.hive.metastore.api.SQLForeignKey;
+import org.apache.hadoop.hive.metastore.api.SQLNotNullConstraint;
 import org.apache.hadoop.hive.metastore.api.SQLPrimaryKey;
+import org.apache.hadoop.hive.metastore.api.SQLUniqueConstraint;
+import org.apache.hadoop.hive.metastore.api.SetPartitionsStatsRequest;
+import org.apache.hadoop.hive.metastore.api.ShowCompactRequest;
 import org.apache.hadoop.hive.metastore.api.ShowCompactResponse;
 import org.apache.hadoop.hive.metastore.api.ShowLocksRequest;
 import org.apache.hadoop.hive.metastore.api.ShowLocksResponse;
@@ -110,6 +139,7 @@ import org.apache.hadoop.hive.metastore.api.TxnOpenException;
 import org.apache.hadoop.hive.metastore.api.UnknownDBException;
 import org.apache.hadoop.hive.metastore.api.UnknownPartitionException;
 import org.apache.hadoop.hive.metastore.api.UnknownTableException;
+import org.apache.hadoop.hive.metastore.api.UnlockRequest;
 import org.apache.hadoop.hive.metastore.api.hive_metastoreConstants;
 import org.apache.hadoop.hive.metastore.partition.spec.PartitionListComposingSpecProxy;
 import org.apache.hadoop.hive.metastore.partition.spec.PartitionSpecProxy;
@@ -138,10 +168,11 @@ import static com.amazonaws.glue.catalog.converters.ConverterUtils.stringToCatal
 import static com.amazonaws.glue.catalog.metastore.GlueMetastoreClientDelegate.INDEX_PREFIX;
 import static com.amazonaws.glue.catalog.util.MetastoreClientUtils.isExternalTable;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.hadoop.hive.metastore.Warehouse.DEFAULT_CATALOG_NAME;
 import static org.apache.hadoop.hive.metastore.Warehouse.DEFAULT_DATABASE_COMMENT;
 import static org.apache.hadoop.hive.metastore.Warehouse.DEFAULT_DATABASE_NAME;
 
-public class AWSCatalogMetastoreClient implements CloseableThriftHiveMetastoreIface
+public abstract class AWSCatalogMetastoreClient implements CloseableThriftHiveMetastoreIface
 {
 
   // TODO "hook" into Hive logging (hive or hive.metastore)
@@ -221,9 +252,9 @@ public class AWSCatalogMetastoreClient implements CloseableThriftHiveMetastoreIf
       this.catalogId = catalogId;
       return this;
     }
-    
+
     public AWSCatalogMetastoreClient build() throws MetaException {
-      return new AWSCatalogMetastoreClient(this);
+      return new AWSCatalogMetastoreClientHive3(this);
     }
 
     public Builder createDefaults(boolean createDefaultDB) {
@@ -232,7 +263,9 @@ public class AWSCatalogMetastoreClient implements CloseableThriftHiveMetastoreIf
     }
   }
 
-  private AWSCatalogMetastoreClient(Builder builder) throws MetaException {
+
+
+  AWSCatalogMetastoreClient(Builder builder) throws MetaException {
     conf = Objects.firstNonNull(builder.conf, new HiveConf());
 
     if (builder.wh != null) {
@@ -240,7 +273,7 @@ public class AWSCatalogMetastoreClient implements CloseableThriftHiveMetastoreIf
     } else {
       this.wh = new Warehouse(conf);
     }
-    
+
     if (builder.catalogId != null) {
     	this.catalogId = builder.catalogId;
     } else {
@@ -334,23 +367,10 @@ public class AWSCatalogMetastoreClient implements CloseableThriftHiveMetastoreIf
     glueMetastoreClientDelegate.alterDatabase(databaseName, database);
   }
 
-//  @Override
-//  public void drop_database(String name) throws NoSuchObjectException, InvalidOperationException, MetaException,
-//        TException {
-//    drop_database(name, true, false, false);
-//  }
-
-
   @Override
-  public void drop_database(String name, boolean deleteData, boolean ignoreUnknownDb) throws NoSuchObjectException,
-        InvalidOperationException, MetaException, TException {
-    drop_database(name, deleteData, ignoreUnknownDb, false);
-  }
-
-//  @Override
-  public void drop_database(String name, boolean deleteData, boolean ignoreUnknownDb, boolean cascade)
-        throws NoSuchObjectException, InvalidOperationException, MetaException, TException {
-    glueMetastoreClientDelegate.dropDatabase(name, deleteData, ignoreUnknownDb, cascade);
+  public void drop_database(String name, boolean deleteData, boolean cascade) throws NoSuchObjectException, InvalidOperationException, MetaException,
+        TException {
+    glueMetastoreClientDelegate.dropDatabase(name, deleteData, false, cascade);
   }
 
   @Override
@@ -367,19 +387,6 @@ public class AWSCatalogMetastoreClient implements CloseableThriftHiveMetastoreIf
         TException {
     return glueMetastoreClientDelegate.addPartitions(partitions, false, true).size();
   }
-
-
-
-  //  @Override
-//  public List<org.apache.hadoop.hive.metastore.api.Partition> add_partitions(
-//      List<org.apache.hadoop.hive.metastore.api.Partition> partitions,
-//      boolean ifNotExists,
-//      boolean needResult
-//  ) throws TException {
-//    return glueMetastoreClientDelegate.addPartitions(partitions, ifNotExists, needResult);
-//  }
-//
-
 
   @Override
   public AddPartitionsResult add_partitions_req(AddPartitionsRequest addPartitionsRequest)
@@ -482,7 +489,7 @@ public class AWSCatalogMetastoreClient implements CloseableThriftHiveMetastoreIf
   @Override
   public org.apache.hadoop.hive.metastore.api.Partition append_partition_by_name(String dbName, String tblName, String partitionName) throws InvalidObjectException,
         org.apache.hadoop.hive.metastore.api.AlreadyExistsException, MetaException, TException {
-    List<String> partVals = partitionNameToVals(partitionName);
+    List<String> partVals = partition_name_to_vals(partitionName);
     return glueMetastoreClientDelegate.appendPartition(dbName, tblName, partVals);
   }
 
@@ -532,28 +539,19 @@ public class AWSCatalogMetastoreClient implements CloseableThriftHiveMetastoreIf
     return glueMetastoreClientDelegate.grantRole(roleName, userName, principalType, grantor, grantorType, grantOption);
   }
 
-//  @Override
-//  public boolean revoke_role(
-//      String roleName,
-//      String userName,
-//      org.apache.hadoop.hive.metastore.api.PrincipalType principalType,
-//      boolean grantOption
-//  ) throws MetaException, TException {
-//    return glueMetastoreClientDelegate.revokeRole(roleName, userName, principalType, grantOption);
-//  }
+  @Override
+  public GrantRevokeRoleResponse grant_revoke_role(GrantRevokeRoleRequest request) throws MetaException, TException {
+    boolean b = glueMetastoreClientDelegate.revokeRole(request.getRoleName(), request.getPrincipalName(), request.getPrincipalType(), true);
+    GrantRevokeRoleResponse response = new GrantRevokeRoleResponse();
+    response.setSuccess(b);
+    return response;
+  }
 
 
   @Override
   public void cancel_delegation_token(String tokenStrForm) throws MetaException, TException {
     glueMetastoreClientDelegate.cancelDelegationToken(tokenStrForm);
   }
-
-//  @Override
-//  public String getTokenStrForm() throws IOException {
-//    return glueMetastoreClientDelegate.getTokenStrForm();
-//  }
-
-
 
   @Override
   public boolean add_token(String tokenIdentifier, String delegationToken) throws TException {
@@ -719,32 +717,29 @@ public class AWSCatalogMetastoreClient implements CloseableThriftHiveMetastoreIf
     return glueMetastoreClientDelegate.dropPartition(dbName, tblName, values, false, deleteData, false);
   }
 
-//  @Override
-//  public boolean dropPartition(String dbName, String tblName, List<String> values, PartitionDropOptions options) throws TException {
-//    return glueMetastoreClientDelegate.dropPartition(dbName, tblName, values, options.ifExists, options.deleteData, options.purgeData);
-//  }
 
+  @Override
+  public boolean drop_partition_by_name_with_environment_context(String dbName, String tblName, String part_name, boolean deleteData, EnvironmentContext environmentContext)
+          throws TException
+  {
+    return glueMetastoreClientDelegate.dropPartition(dbName, tblName, Arrays.asList(part_name), false /*context.ifExists*/, deleteData, false /*options.purgeData*/);
+  }
 
+  @Override
+  public boolean drop_partition_with_environment_context(String dbName, String tblName, List<String> part_vals, boolean deleteData, EnvironmentContext environmentContext)
+          throws TException
+  {
+
+    return glueMetastoreClientDelegate.dropPartition(dbName, tblName, part_vals, false /*context.ifExists*/, deleteData, false /*options.purgeData*/);
+  }
 
   @Override
   public boolean drop_partition_by_name(String dbName, String tblName, String partitionName, boolean deleteData)
       throws NoSuchObjectException, MetaException, TException {
-    List<String> values = partitionNameToVals(partitionName);
+    List<String> values = partition_name_to_vals(partitionName);
     return glueMetastoreClientDelegate.dropPartition(dbName, tblName, values, false, deleteData, false);
   }
 
-
-//  @Override
-//  public List<org.apache.hadoop.hive.metastore.api.Partition> dropPartitions(
-//      String dbName,
-//      String tblName,
-//      List<ObjectPair<Integer, byte[]>> partExprs,
-//      boolean deleteData,
-//      boolean ifExists
-//  ) throws NoSuchObjectException, MetaException, TException {
-//    //use defaults from PartitionDropOptions for purgeData
-//    return dropPartitions_core(dbName, tblName, partExprs, deleteData, false);
-//  }
 
   @Override
   public DropPartitionsResult drop_partitions_req(DropPartitionsRequest dropPartitionsRequest)
@@ -766,30 +761,6 @@ public class AWSCatalogMetastoreClient implements CloseableThriftHiveMetastoreIf
     dropPartitionsResult.setFieldValue(DropPartitionsResult._Fields.PARTITIONS,null);
     return dropPartitionsResult;
   }
-
-//  @Override
-//  public List<org.apache.hadoop.hive.metastore.api.Partition> dropPartitions(
-//      String dbName,
-//      String tblName,
-//      List<ObjectPair<Integer, byte[]>> partExprs,
-//      boolean deleteData,
-//      boolean ifExists,
-//      boolean needResults
-//  ) throws NoSuchObjectException, MetaException, TException {
-//    return dropPartitions_core(dbName, tblName, partExprs, deleteData, false);
-//  }
-//
-//
-//
-//  @Override
-//  public List<org.apache.hadoop.hive.metastore.api.Partition> dropPartitions(
-//      String dbName,
-//      String tblName,
-//      List<ObjectPair<Integer, byte[]>> partExprs,
-//      PartitionDropOptions options
-//  ) throws TException {
-//    return dropPartitions_core(dbName, tblName, partExprs, options.deleteData, options.purgeData);
-//  }
 
   private List<org.apache.hadoop.hive.metastore.api.Partition> dropPartitions_core(
       String databaseName,
@@ -1060,8 +1031,7 @@ public class AWSCatalogMetastoreClient implements CloseableThriftHiveMetastoreIf
     ColumnStatistics columnStatistics = new ColumnStatistics();
     columnStatistics.setStatsObj(Arrays.asList(columnStatisticsObj));
     ColumnStatisticsDesc statsDesc = new ColumnStatisticsDesc();
-    //FIXME: add catalog name
-//    statsDesc.setCatName();
+    statsDesc.setCatName(DEFAULT_CATALOG_NAME);
     statsDesc.setDbName(dbName);
     statsDesc.setTableName(tableName);
     columnStatistics.setStatsDesc(statsDesc);
@@ -1078,7 +1048,7 @@ public class AWSCatalogMetastoreClient implements CloseableThriftHiveMetastoreIf
 
     // TODO move this into the service
     org.apache.hadoop.hive.metastore.api.Partition partition = get_partition(databaseName, tableName, values);
-    org.apache.hadoop.hive.metastore.api.Table table = getTable(databaseName, tableName);
+    org.apache.hadoop.hive.metastore.api.Table table = get_table(databaseName, tableName);
     if ("TRUE".equalsIgnoreCase(table.getParameters().get("PARTITION_LEVEL_PRIVILEGE"))) {
       String partName = Warehouse.makePartName(table.getPartitionKeys(), values);
       HiveObjectRef obj = new HiveObjectRef();
@@ -1126,8 +1096,7 @@ public class AWSCatalogMetastoreClient implements CloseableThriftHiveMetastoreIf
     ColumnStatistics columnStatistics = new ColumnStatistics();
     columnStatistics.setStatsObj(Arrays.asList(tableColumnStatistics.get(0)));
     ColumnStatisticsDesc statsDesc = new ColumnStatisticsDesc();
-    //FIXME: add catalog name
-//    statsDesc.setCatName();
+    statsDesc.setCatName(DEFAULT_CATALOG_NAME);
     statsDesc.setDbName(dbName);
     statsDesc.setTableName(tableName);
     columnStatistics.setStatsDesc(statsDesc);
@@ -1164,6 +1133,12 @@ public class AWSCatalogMetastoreClient implements CloseableThriftHiveMetastoreIf
     return glueMetastoreClientDelegate.getTableMeta(dbPatterns, tablePatterns, tableTypes);
   }
 
+
+  public GetOpenTxnsResponse get_open_txns() throws TException
+  {
+    //FIXME:unsupported
+    return null;
+  }
   //TODO
 //  @Override
 //  public ValidTxnList getValidTxns() throws TException {
@@ -1212,39 +1187,6 @@ public class AWSCatalogMetastoreClient implements CloseableThriftHiveMetastoreIf
     return heartbeatTxnRangeResponse;
   }
 
-
-  //TODO
-//  @Override
-//  public boolean isCompatibleWith(HiveConf conf) {
-//    if (currentMetaVars == null) {
-//      return false; // recreate
-//    }
-//    boolean compatible = true;
-//    for (ConfVars oneVar : HiveConf.metaVars) {
-//      // Since metaVars are all of different types, use string for comparison
-//      String oldVar = currentMetaVars.get(oneVar.varname);
-//      String newVar = conf.get(oneVar.varname, "");
-//      if (oldVar == null ||
-//            (oneVar.isCaseSensitive() ? !oldVar.equals(newVar) : !oldVar.equalsIgnoreCase(newVar))) {
-//        logger.info("Mestastore configuration " + oneVar.varname +
-//              " changed from " + oldVar + " to " + newVar);
-//        compatible = false;
-//      }
-//    }
-//    return compatible;
-//  }
-
-//  @Override
-//  public void setHiveAddedJars(String addedJars) {
-//    //taken from HiveMetaStoreClient
-//    HiveConf.setVar(conf, ConfVars.HIVEADDEDJARS, addedJars);
-//  }
-
-//  @Override
-//  public boolean is_local_metaStore() {
-//    return false;
-//  }
-
   private void snapshotActiveConf() {
     currentMetaVars = new HashMap<String, String>(HiveConf.metaVars.length);
     for (ConfVars oneVar : HiveConf.metaVars) {
@@ -1260,10 +1202,10 @@ public class AWSCatalogMetastoreClient implements CloseableThriftHiveMetastoreIf
   }
 
   @Override
-  public List<String> listPartitionNames(String dbName, String tblName, short max)
+  public List<String> get_partition_names(String dbName, String tblName, short max)
         throws MetaException, TException {
     try {
-      return listPartitionNames(dbName, tblName, null, max);
+      return get_partition_names_ps(dbName, tblName, null, max);
     } catch (NoSuchObjectException e) {
       // For compatibility with Hive 1.0.0
       return Collections.emptyList();
@@ -1271,37 +1213,39 @@ public class AWSCatalogMetastoreClient implements CloseableThriftHiveMetastoreIf
   }
 
   @Override
-  public List<String> listPartitionNames(String databaseName, String tableName,
+  public List<String> get_partition_names_ps(String databaseName, String tableName,
                                          List<String> values, short max)
         throws MetaException, TException, NoSuchObjectException {
     return glueMetastoreClientDelegate.listPartitionNames(databaseName, tableName, values, max);
   }
 
   @Override
-  public int getNumPartitionsByFilter(String dbName, String tableName, String filter)
+  public int get_num_partitions_by_filter(String dbName, String tableName, String filter)
       throws MetaException, NoSuchObjectException, TException {
     return glueMetastoreClientDelegate.getNumPartitionsByFilter(dbName, tableName, filter);
   }
 
+
   @Override
-  public PartitionSpecProxy listPartitionSpecs(String dbName, String tblName, int max) throws TException {
-    return glueMetastoreClientDelegate.listPartitionSpecs(dbName, tblName, max);
+  public List<PartitionSpec> get_partitions_pspec(String dbName, String tblName, int max) throws TException {
+    PartitionSpecProxy partitionSpecProxy = glueMetastoreClientDelegate.listPartitionSpecs(dbName, tblName, max);
+    return partitionSpecProxy.toPartitionSpec();
   }
 
   @Override
-  public PartitionSpecProxy listPartitionSpecsByFilter(String dbName, String tblName, String filter, int max)
+  public List<PartitionSpec> get_part_specs_by_filter(String dbName, String tblName, String filter, int max)
       throws MetaException, NoSuchObjectException, TException {
-    return glueMetastoreClientDelegate.listPartitionSpecsByFilter(dbName, tblName, filter, max);
+    return glueMetastoreClientDelegate.listPartitionSpecsByFilter(dbName, tblName, filter, max).toPartitionSpec();
   }
 
   @Override
-  public List<org.apache.hadoop.hive.metastore.api.Partition> listPartitions(String dbName, String tblName, short max)
+  public List<org.apache.hadoop.hive.metastore.api.Partition> get_partitions(String dbName, String tblName, short max)
       throws NoSuchObjectException, MetaException, TException {
-    return listPartitions(dbName, tblName, null, max);
+    return get_partitions_ps(dbName, tblName, null, max);
   }
 
   @Override
-  public List<org.apache.hadoop.hive.metastore.api.Partition> listPartitions(
+  public List<org.apache.hadoop.hive.metastore.api.Partition> get_partitions_ps(
       String databaseName,
       String tableName,
       List<String> values,
@@ -1309,33 +1253,28 @@ public class AWSCatalogMetastoreClient implements CloseableThriftHiveMetastoreIf
   ) throws NoSuchObjectException, MetaException, TException {
     String expression = null;
     if (values != null) {
-      org.apache.hadoop.hive.metastore.api.Table table = getTable(databaseName, tableName);
+      org.apache.hadoop.hive.metastore.api.Table table = get_table(databaseName, tableName);
       expression = ExpressionHelper.buildExpressionFromPartialSpecification(table, values);
     }
     return glueMetastoreClientDelegate.getPartitions(databaseName, tableName, expression, (long) max);
   }
 
   @Override
-  public boolean listPartitionsByExpr(
-      String databaseName,
-      String tableName,
-      byte[] expr,
-      String defaultPartitionName,
-      short max,
-      List<org.apache.hadoop.hive.metastore.api.Partition> result
-  ) throws TException {
-    checkNotNull(result, "The result argument cannot be null.");
+  public PartitionsByExprResult get_partitions_by_expr(PartitionsByExprRequest partitionsByExprRequest) throws TException {
 
-    String catalogExpression =  ExpressionHelper.convertHiveExpressionToCatalogExpression(expr);
+    String catalogExpression =  ExpressionHelper.convertHiveExpressionToCatalogExpression(partitionsByExprRequest.getExpr());
     List<org.apache.hadoop.hive.metastore.api.Partition> partitions =
-        glueMetastoreClientDelegate.getPartitions(databaseName, tableName, catalogExpression, (long) max);
-    result.addAll(partitions);
-
-    return false;
+        glueMetastoreClientDelegate.getPartitions(partitionsByExprRequest.getDbName(), partitionsByExprRequest.getTblName(), catalogExpression, (long) partitionsByExprRequest.getMaxParts());
+    PartitionsByExprResult partitionsByExprResult = new PartitionsByExprResult();
+    partitionsByExprResult.setPartitions(partitions);
+    //TODO: check this values
+    partitionsByExprResult.setHasUnknownPartitions(false);
+//    return false;
+    return partitionsByExprResult;
   }
 
   @Override
-  public List<org.apache.hadoop.hive.metastore.api.Partition> listPartitionsByFilter(
+  public List<org.apache.hadoop.hive.metastore.api.Partition> get_partitions_by_filter(
       String databaseName,
       String tableName,
       String filter,
@@ -1350,10 +1289,10 @@ public class AWSCatalogMetastoreClient implements CloseableThriftHiveMetastoreIf
   }
 
   @Override
-  public List<org.apache.hadoop.hive.metastore.api.Partition> listPartitionsWithAuthInfo(String database, String table, short maxParts,
+  public List<org.apache.hadoop.hive.metastore.api.Partition> get_partitions_with_auth(String database, String table, short maxParts,
                                                                                          String user, List<String> groups)
         throws MetaException, TException, NoSuchObjectException {
-    List<org.apache.hadoop.hive.metastore.api.Partition> partitions = listPartitions(database, table, maxParts);
+    List<org.apache.hadoop.hive.metastore.api.Partition> partitions = get_partitions(database, table, maxParts);
 
     for (org.apache.hadoop.hive.metastore.api.Partition p : partitions) {
       HiveObjectRef obj = new HiveObjectRef();
@@ -1369,10 +1308,10 @@ public class AWSCatalogMetastoreClient implements CloseableThriftHiveMetastoreIf
   }
 
   @Override
-  public List<org.apache.hadoop.hive.metastore.api.Partition> listPartitionsWithAuthInfo(String database, String table,
+  public List<org.apache.hadoop.hive.metastore.api.Partition> get_partitions_ps_with_auth(String database, String table,
                                                                                          List<String> partVals, short maxParts,
                                                                                          String user, List<String> groups) throws MetaException, TException, NoSuchObjectException {
-    List<org.apache.hadoop.hive.metastore.api.Partition> partitions = listPartitions(database, table, partVals, maxParts);
+    List<org.apache.hadoop.hive.metastore.api.Partition> partitions = get_partitions_ps(database, table, partVals, maxParts);
 
     for (org.apache.hadoop.hive.metastore.api.Partition p : partitions) {
       HiveObjectRef obj = new HiveObjectRef();
@@ -1395,7 +1334,7 @@ public class AWSCatalogMetastoreClient implements CloseableThriftHiveMetastoreIf
   }
 
   @Override
-  public List<String> listTableNamesByFilter(String dbName, String filter, short maxTables) throws MetaException,
+  public List<String> get_table_names_by_filter(String dbName, String filter, short maxTables) throws MetaException,
         TException, InvalidOperationException, UnknownDBException {
     return glueMetastoreClientDelegate.listTableNamesByFilter(dbName, filter, maxTables);
   }
@@ -1426,17 +1365,12 @@ public class AWSCatalogMetastoreClient implements CloseableThriftHiveMetastoreIf
   }
 
   @Override
-  public long openTxn(String user) throws TException {
-    return glueMetastoreClientDelegate.openTxn(user);
+  public OpenTxnsResponse open_txns(OpenTxnRequest request) throws TException {
+    return glueMetastoreClientDelegate.openTxns(request.getUser(), request.getNum_txns());
   }
 
   @Override
-  public OpenTxnsResponse openTxns(String user, int numTxns) throws TException {
-    return glueMetastoreClientDelegate.openTxns(user, numTxns);
-  }
-
-  @Override
-  public Map<String, String> partitionNameToSpec(String name) throws MetaException, TException {
+  public Map<String, String> partition_name_to_spec(String name) throws MetaException, TException {
     // Lifted from HiveMetaStore
     if (name.length() == 0) {
       return new HashMap<String, String>();
@@ -1445,18 +1379,18 @@ public class AWSCatalogMetastoreClient implements CloseableThriftHiveMetastoreIf
   }
 
   @Override
-  public List<String> partitionNameToVals(String name) throws MetaException, TException {
+  public List<String> partition_name_to_vals(String name) throws MetaException, TException {
     return glueMetastoreClientDelegate.partitionNameToVals(name);
   }
 
-  @Override
-  public void reconnect() throws MetaException {
-    // TODO reset active Hive confs for metastore glueClient
-    logger.debug("reconnect() was called.");
-  }
+//  @Override
+//  public void reconnect() throws MetaException {
+//    // TODO reset active Hive confs for metastore glueClient
+//    logger.debug("reconnect() was called.");
+//  }
 
   @Override
-  public void renamePartition(String dbName, String tblName, List<String> partitionValues,
+  public void rename_partition(String dbName, String tblName, List<String> partitionValues,
                               org.apache.hadoop.hive.metastore.api.Partition newPartition)
         throws InvalidOperationException, MetaException, TException {
 
@@ -1466,8 +1400,8 @@ public class AWSCatalogMetastoreClient implements CloseableThriftHiveMetastoreIf
     org.apache.hadoop.hive.metastore.api.Partition oldPart;
 
     try {
-      tbl = getTable(dbName, tblName);
-      oldPart = getPartition(dbName, tblName, partitionValues);
+      tbl = get_table(dbName, tblName);
+      oldPart = get_partition(dbName, tblName, partitionValues);
     } catch(NoSuchObjectException e) {
       throw new InvalidOperationException(e.getMessage());
     }
@@ -1496,7 +1430,7 @@ public class AWSCatalogMetastoreClient implements CloseableThriftHiveMetastoreIf
         if (srcFs.exists(srcPath)) {
           //if destPath's parent path doesn't exist, we should mkdir it
           Path destParentPath = destPath.getParent();
-          if (!wh.mkdirs(destParentPath, true)) {
+          if (!wh.mkdirs(destParentPath)) {
             throw new IOException("Unable to create path " + destParentPath);
           }
           wh.renameDir(srcPath, destPath, true);
@@ -1543,7 +1477,7 @@ public class AWSCatalogMetastoreClient implements CloseableThriftHiveMetastoreIf
   private Path getDestinationPathForRename(String dbName, org.apache.hadoop.hive.metastore.api.Table tbl, org.apache.hadoop.hive.metastore.api.Partition newPartition)
         throws InvalidOperationException, MetaException, TException {
     try {
-      Path destPath = new Path(hiveShims.getDefaultTablePath(getDatabase(dbName), tbl.getTableName(), wh),
+      Path destPath = new Path(hiveShims.getDefaultTablePath(get_database(dbName), tbl.getTableName(), wh),
             Warehouse.makePartName(tbl.getPartitionKeys(), newPartition.getValues()));
       return constructRenamedPath(destPath, new Path(newPartition.getSd().getLocation()));
     } catch (NoSuchObjectException e) {
@@ -1578,13 +1512,13 @@ public class AWSCatalogMetastoreClient implements CloseableThriftHiveMetastoreIf
   }
 
   @Override
-  public long renewDelegationToken(String tokenStrForm) throws MetaException, TException {
+  public long renew_delegation_token(String tokenStrForm) throws MetaException, TException {
     return glueMetastoreClientDelegate.renewDelegationToken(tokenStrForm);
   }
 
   @Override
-  public void rollbackTxn(long txnId) throws NoSuchTxnException, TException {
-    glueMetastoreClientDelegate.rollbackTxn(txnId);
+  public void abort_txn(AbortTxnRequest request) throws NoSuchTxnException, TException {
+    glueMetastoreClientDelegate.rollbackTxn(request.getTxnid());
   }
 
   @Override
@@ -1601,204 +1535,154 @@ public class AWSCatalogMetastoreClient implements CloseableThriftHiveMetastoreIf
   }
 
   @Override
-  public boolean setPartitionColumnStatistics(org.apache.hadoop.hive.metastore.api.SetPartitionsStatsRequest request)
-      throws NoSuchObjectException, InvalidObjectException,
-      MetaException, TException, org.apache.hadoop.hive.metastore.api.InvalidInputException {
-    return glueMetastoreClientDelegate.setPartitionColumnStatistics(request);
-  }
-
-  @Override
   public void flushCache() {
     //no op
   }
 
   @Override
-  public Iterable<Map.Entry<Long, ByteBuffer>> getFileMetadata(List<Long> fileIds) throws TException {
-    return glueMetastoreClientDelegate.getFileMetadata(fileIds);
+  public GetFileMetadataResult get_file_metadata(GetFileMetadataRequest request) throws TException {
+    List<Long> fileIds = request.getFileIds();
+    Iterable<Map.Entry<Long, ByteBuffer>> fileMetadata = glueMetastoreClientDelegate.getFileMetadata(fileIds);
+    GetFileMetadataResult fileMetadataResult = new GetFileMetadataResult();
+    fileMetadata.forEach(longByteBufferEntry -> fileMetadataResult.putToMetadata(longByteBufferEntry.getKey(), longByteBufferEntry.getValue()));
+    return fileMetadataResult;
+  }
+
+  public  GetFileMetadataByExprResult get_file_metadata_by_expr(GetFileMetadataByExprRequest request) throws TException{
+    Iterable<Map.Entry<Long, MetadataPpdResult>> fileMetadataBySarg =
+            glueMetastoreClientDelegate.getFileMetadataBySarg(request.getFileIds(), ByteBuffer.wrap(request.getExpr()), request.isDoGetFooters());
+    GetFileMetadataByExprResult result = new GetFileMetadataByExprResult();
+    fileMetadataBySarg.forEach(
+            longMetadataPpdResultEntry -> result.putToMetadata(longMetadataPpdResultEntry.getKey(),longMetadataPpdResultEntry.getValue()));
+    return result;
   }
 
   @Override
-  public Iterable<Map.Entry<Long, MetadataPpdResult>> getFileMetadataBySarg(
-      List<Long> fileIds,
-      ByteBuffer sarg,
-      boolean doGetFooters
-  ) throws TException {
-    return glueMetastoreClientDelegate.getFileMetadataBySarg(fileIds, sarg, doGetFooters);
+  public ClearFileMetadataResult clear_file_metadata(ClearFileMetadataRequest request) throws TException {
+    glueMetastoreClientDelegate.clearFileMetadata(request.getFileIds());
+    //TODO:check return values
+    return new ClearFileMetadataResult();
+
   }
 
   @Override
-  public void clearFileMetadata(List<Long> fileIds) throws TException {
-    glueMetastoreClientDelegate.clearFileMetadata(fileIds);
+  public PutFileMetadataResult put_file_metadata(PutFileMetadataRequest request) throws TException {
+    glueMetastoreClientDelegate.putFileMetadata(request.getFileIds(), request.getMetadata());
+    //TODO:check return values
+    return new PutFileMetadataResult();
+  }
+
+
+  @Override
+  public CacheFileMetadataResult cache_file_metadata(CacheFileMetadataRequest request) throws TException {
+    boolean cacheFileMetadata = glueMetastoreClientDelegate.cacheFileMetadata(request.getDbName(), request.getTblName(), request.getPartName(), request.isIsAllParts());
+    CacheFileMetadataResult result = new CacheFileMetadataResult();
+    //TODO:check return values
+    result.setIsSupported(cacheFileMetadata);
+    return result;
   }
 
   @Override
-  public void putFileMetadata(List<Long> fileIds, List<ByteBuffer> metadata) throws TException {
-    glueMetastoreClientDelegate.putFileMetadata(fileIds, metadata);
-  }
-
-  @Override
-  public boolean isSameConfObj(HiveConf hiveConf) {
-    //taken from HiveMetaStoreClient
-    return this.conf == hiveConf;
-  }
-
-  @Override
-  public boolean cacheFileMetadata(String dbName, String tblName, String partName, boolean allParts) throws TException {
-    return glueMetastoreClientDelegate.cacheFileMetadata(dbName, tblName, partName, allParts);
-  }
-
-  @Override
-  public List<SQLPrimaryKey> getPrimaryKeys(PrimaryKeysRequest primaryKeysRequest) throws MetaException, NoSuchObjectException, TException {
+  public PrimaryKeysResponse get_primary_keys(PrimaryKeysRequest primaryKeysRequest) throws MetaException, NoSuchObjectException, TException {
     // PrimaryKeys are currently unsupported
     //return null to allow DESCRIBE (FORMATTED | EXTENDED)
     return null;
   }
 
   @Override
-  public List<SQLForeignKey> getForeignKeys(ForeignKeysRequest foreignKeysRequest) throws MetaException, NoSuchObjectException, TException {
+  public ForeignKeysResponse get_foreign_keys(ForeignKeysRequest foreignKeysRequest) throws MetaException, NoSuchObjectException, TException {
     // PrimaryKeys are currently unsupported
     //return null to allow DESCRIBE (FORMATTED | EXTENDED)
     return null;
   }
 
   @Override
-  public void createTableWithConstraints(
+  public void create_table_with_constraints(
       org.apache.hadoop.hive.metastore.api.Table table,
       List<SQLPrimaryKey> primaryKeys,
-      List<SQLForeignKey> foreignKeys
+      List<SQLForeignKey> foreignKeys,
+      List<SQLUniqueConstraint> uniqueConstraints,
+      List<SQLNotNullConstraint>  sqlNotNullConstraints,
+      List<SQLDefaultConstraint> sqlDefaultConstraints,
+      List<SQLCheckConstraint> sqlCheckConstraints
   ) throws AlreadyExistsException, InvalidObjectException, MetaException, NoSuchObjectException, TException {
+    //TODO:add warning log for unsupported
     glueMetastoreClientDelegate.createTableWithConstraints(table, primaryKeys, foreignKeys);
   }
 
   @Override
-  public void dropConstraint(
-      String dbName,
-      String tblName,
-      String constraintName
-  ) throws MetaException, NoSuchObjectException, TException {
-    glueMetastoreClientDelegate.dropConstraint(dbName, tblName, constraintName);
+  public void drop_constraint(DropConstraintRequest request) throws MetaException, NoSuchObjectException, TException {
+    glueMetastoreClientDelegate.dropConstraint(request.getDbname(),request.getTablename(), request.getConstraintname());
   }
 
   @Override
-  public void addPrimaryKey(List<SQLPrimaryKey> primaryKeyCols)
+  public void add_primary_key(AddPrimaryKeyRequest request)
       throws MetaException, NoSuchObjectException, TException {
-    glueMetastoreClientDelegate.addPrimaryKey(primaryKeyCols);
+    glueMetastoreClientDelegate.addPrimaryKey(request.getPrimaryKeyCols());
   }
 
   @Override
-  public void addForeignKey(List<SQLForeignKey> foreignKeyCols)
+  public void add_foreign_key(AddForeignKeyRequest request)
       throws MetaException, NoSuchObjectException, TException {
-    glueMetastoreClientDelegate.addForeignKey(foreignKeyCols);
+    glueMetastoreClientDelegate.addForeignKey(request.getForeignKeyCols());
   }
 
   @Override
-  public ShowCompactResponse showCompactions() throws TException {
+  public ShowCompactResponse show_compact(ShowCompactRequest request) throws TException {
     return glueMetastoreClientDelegate.showCompactions();
   }
 
   @Override
-  public void addDynamicPartitions(
-      long txnId,
-      String dbName,
-      String tblName,
-      List<String> partNames
-  ) throws TException {
-    glueMetastoreClientDelegate.addDynamicPartitions(txnId, dbName, tblName, partNames);
+  public void add_dynamic_partitions(AddDynamicPartitions request) throws TException {
+    glueMetastoreClientDelegate.addDynamicPartitions(request.getTxnid(),request.getDbname(),request.getTablename(),request.getPartitionnames());
+  }
+
+
+  @Override
+  public NotificationEventResponse get_next_notification(NotificationEventRequest request) throws TException {
+    return glueMetastoreClientDelegate.getNextNotification(request.getLastEvent(), request.getMaxEvents(),null);
   }
 
   @Override
-  public void addDynamicPartitions(
-      long txnId,
-      String dbName,
-      String tblName,
-      List<String> partNames,
-      DataOperationType operationType
-  ) throws TException {
-    glueMetastoreClientDelegate.addDynamicPartitions(txnId, dbName, tblName, partNames, operationType);
-  }
-
-  @Override
-  public void insertTable(org.apache.hadoop.hive.metastore.api.Table table, boolean overwrite) throws MetaException {
-    glueMetastoreClientDelegate.insertTable(table, overwrite);
-  }
-
-  @Override
-  public NotificationEventResponse getNextNotification(
-      long lastEventId, int maxEvents, NotificationFilter notificationFilter) throws TException {
-    return glueMetastoreClientDelegate.getNextNotification(lastEventId, maxEvents, notificationFilter);
-  }
-
-  @Override
-  public CurrentNotificationEventId getCurrentNotificationEventId() throws TException {
+  public CurrentNotificationEventId get_current_notificationEventId() throws TException {
     return glueMetastoreClientDelegate.getCurrentNotificationEventId();
   }
 
   @Override
-  public FireEventResponse fireListenerEvent(FireEventRequest fireEventRequest) throws TException {
+  public FireEventResponse fire_listener_event(FireEventRequest fireEventRequest) throws TException {
     return glueMetastoreClientDelegate.fireListenerEvent(fireEventRequest);
   }
 
   @Override
-  public ShowLocksResponse showLocks() throws TException {
+  public ShowLocksResponse show_locks(ShowLocksRequest request) throws TException {
     return glueMetastoreClientDelegate.showLocks();
   }
 
   @Override
-  public ShowLocksResponse showLocks(ShowLocksRequest showLocksRequest) throws TException {
-    return glueMetastoreClientDelegate.showLocks(showLocksRequest);
-  }
-
-  @Override
-  public GetOpenTxnsInfoResponse showTxns() throws TException {
+  public GetOpenTxnsInfoResponse get_open_txns_info() throws TException {
     return glueMetastoreClientDelegate.showTxns();
   }
 
-  @Deprecated
-  public boolean tableExists(String tableName) throws MetaException, TException, UnknownDBException {
-    //this method has been deprecated;
-    return tableExists(DEFAULT_DATABASE_NAME, tableName);
+
+  @Override
+  public void unlock(UnlockRequest request) throws NoSuchLockException, TxnOpenException, TException {
+    glueMetastoreClientDelegate.unlock(request.getLockid());
   }
 
   @Override
-  public boolean tableExists(String databaseName, String tableName) throws MetaException, TException,
-        UnknownDBException {
-    return glueMetastoreClientDelegate.tableExists(databaseName, tableName);
-  }
-
-  @Override
-  public void unlock(long lockId) throws NoSuchLockException, TxnOpenException, TException {
-    glueMetastoreClientDelegate.unlock(lockId);
-  }
-
-  @Override
-  public boolean updatePartitionColumnStatistics(org.apache.hadoop.hive.metastore.api.ColumnStatistics columnStatistics)
+  public boolean update_partition_column_statistics(org.apache.hadoop.hive.metastore.api.ColumnStatistics columnStatistics)
       throws NoSuchObjectException, InvalidObjectException, MetaException, TException,
       org.apache.hadoop.hive.metastore.api.InvalidInputException {
     return glueMetastoreClientDelegate.updatePartitionColumnStatistics(columnStatistics);
   }
 
   @Override
-  public boolean updateTableColumnStatistics(org.apache.hadoop.hive.metastore.api.ColumnStatistics columnStatistics)
+  public boolean update_table_column_statistics(org.apache.hadoop.hive.metastore.api.ColumnStatistics columnStatistics)
       throws NoSuchObjectException, InvalidObjectException, MetaException, TException,
       org.apache.hadoop.hive.metastore.api.InvalidInputException {
     return glueMetastoreClientDelegate.updateTableColumnStatistics(columnStatistics);
   }
 
-  @Override
-  public void validatePartitionNameCharacters(List<String> part_vals) throws TException, MetaException {
-    try {
-      String partitionValidationRegex = conf.getVar(ConfVars.METASTORE_PARTITION_NAME_WHITELIST_PATTERN);
-      Pattern partitionValidationPattern = Strings.isNullOrEmpty(partitionValidationRegex) ? null
-            : Pattern.compile(partitionValidationRegex);
-      MetaStoreUtils.validatePartitionNameCharacters(part_vals, partitionValidationPattern);
-    } catch (Exception e){
-      if (e instanceof MetaException) {
-        throw (MetaException) e;
-      } else {
-        throw new MetaException(e.getMessage());
-      }
-    }
-  }
 
   private Path constructRenamedPath(Path defaultNewPath, Path currentPath) {
     URI currentUri = currentPath.toUri();
