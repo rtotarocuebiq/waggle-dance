@@ -23,6 +23,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import com.amazonaws.glue.catalog.metastore.AWSCatalogMetastoreClient;
+import com.amazonaws.glue.catalog.metastore.AWSCatalogMetastoreClientHive3;
 import org.apache.hadoop.hive.conf.HiveConf.ConfVars;
 
 import com.hotels.bdp.waggledance.api.model.AbstractMetaStore;
@@ -30,6 +32,7 @@ import com.hotels.bdp.waggledance.client.tunnelling.TunnelingMetaStoreClientFact
 import com.hotels.bdp.waggledance.conf.WaggleDanceConfiguration;
 import com.hotels.hcommon.hive.metastore.conf.HiveConfFactory;
 import com.hotels.hcommon.hive.metastore.util.MetaStoreUriNormaliser;
+import org.apache.hadoop.hive.metastore.api.MetaException;
 
 public class CloseableThriftHiveMetastoreIfaceClientFactory {
 
@@ -48,7 +51,12 @@ public class CloseableThriftHiveMetastoreIfaceClientFactory {
     this.waggleDanceConfiguration = waggleDanceConfiguration;
   }
 
-  public CloseableThriftHiveMetastoreIface newInstance(AbstractMetaStore metaStore) {
+  public static String METASTORE_TYPE_HIVE = "hive";
+  public static String METASTORE_TYPE_GLUE = "glue";
+
+  public CloseableThriftHiveMetastoreIface newInstance(AbstractMetaStore metaStore)
+          throws MetaException
+  {
     String uris = MetaStoreUriNormaliser.normaliseMetaStoreUris(metaStore.getRemoteMetaStoreUris());
     String name = metaStore.getName().toLowerCase(Locale.ROOT);
 
@@ -56,19 +64,27 @@ public class CloseableThriftHiveMetastoreIfaceClientFactory {
     // A timeout of zero is interpreted as an infinite timeout, so this is avoided
     int connectionTimeout = Math.max(1, defaultConnectionTimeout + (int) metaStore.getLatency());
 
-    if (metaStore.getConnectionType() == TUNNELED) {
-      return tunnelingMetaStoreClientFactory
-          .newInstance(uris, metaStore.getMetastoreTunnel(), name, DEFAULT_CLIENT_FACTORY_RECONNECTION_RETRY,
-              connectionTimeout, waggleDanceConfiguration.getConfigurationProperties());
+    if (metaStore.getMetastoreType().equals(METASTORE_TYPE_HIVE)) {
+      if (metaStore.getConnectionType() == TUNNELED) {
+        return tunnelingMetaStoreClientFactory
+                .newInstance(uris, metaStore.getMetastoreTunnel(), name, DEFAULT_CLIENT_FACTORY_RECONNECTION_RETRY,
+                        connectionTimeout, waggleDanceConfiguration.getConfigurationProperties());
+      }
+      Map<String, String> properties = new HashMap<>();
+      properties.put(ConfVars.METASTOREURIS.varname, uris);
+      if (waggleDanceConfiguration.getConfigurationProperties() != null) {
+        properties.putAll(waggleDanceConfiguration.getConfigurationProperties());
+      }
+      HiveConfFactory confFactory = new HiveConfFactory(Collections.emptyList(), properties);
+      return defaultMetaStoreClientFactory
+              .newInstance(confFactory.newInstance(), "waggledance-" + name, DEFAULT_CLIENT_FACTORY_RECONNECTION_RETRY,
+                      connectionTimeout);
     }
-    Map<String, String> properties = new HashMap<>();
-    properties.put(ConfVars.METASTOREURIS.varname, uris);
-    if (waggleDanceConfiguration.getConfigurationProperties() != null) {
-      properties.putAll(waggleDanceConfiguration.getConfigurationProperties());
+
+    else if (metaStore.getMetastoreType().equals(METASTORE_TYPE_GLUE)) {
+      //TODO: configure glue
+      return new AWSCatalogMetastoreClient.Builder().build();
     }
-    HiveConfFactory confFactory = new HiveConfFactory(Collections.emptyList(), properties);
-    return defaultMetaStoreClientFactory
-        .newInstance(confFactory.newInstance(), "waggledance-" + name, DEFAULT_CLIENT_FACTORY_RECONNECTION_RETRY,
-            connectionTimeout);
+    throw new RuntimeException("Unsupported metastore type:"+ metaStore.getMetastoreType());
   }
 }

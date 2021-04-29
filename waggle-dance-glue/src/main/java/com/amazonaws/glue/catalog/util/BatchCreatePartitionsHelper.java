@@ -1,23 +1,38 @@
+/**
+ * Copyright (C) 2016-2021 Expedia, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.amazonaws.glue.catalog.util;
 
-import com.amazonaws.glue.catalog.metastore.AWSGlueMetastore;
-import com.amazonaws.glue.catalog.converters.CatalogToHiveConverter;
-import com.amazonaws.glue.catalog.converters.GlueInputConverter;
-import com.amazonaws.services.glue.model.EntityNotFoundException;
-import com.amazonaws.services.glue.model.Partition;
-import com.amazonaws.services.glue.model.PartitionError;
-import com.google.common.collect.Lists;
+import static com.amazonaws.glue.catalog.util.PartitionUtils.isInvalidUserInputException;
+
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.hive.metastore.api.AlreadyExistsException;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-
-import static com.amazonaws.glue.catalog.util.PartitionUtils.isInvalidUserInputException;
+import com.amazonaws.glue.catalog.converters.CatalogToHiveConverter;
+import com.amazonaws.glue.catalog.converters.GlueInputConverter;
+import com.amazonaws.glue.catalog.metastore.AWSGlueMetastore;
+import com.amazonaws.services.glue.model.EntityNotFoundException;
+import com.amazonaws.services.glue.model.Partition;
+import com.amazonaws.services.glue.model.PartitionError;
+import com.google.common.collect.Lists;
 
 public final class BatchCreatePartitionsHelper {
 

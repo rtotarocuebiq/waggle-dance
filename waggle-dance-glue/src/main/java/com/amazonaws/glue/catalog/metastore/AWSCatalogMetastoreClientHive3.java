@@ -1,9 +1,25 @@
+/**
+ * Copyright (C) 2016-2021 Expedia, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.amazonaws.glue.catalog.metastore;
 
-import com.facebook.fb303.fb_status;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.hadoop.hive.conf.HiveConf;
-import org.apache.hadoop.hive.metastore.Warehouse;
-import org.apache.hadoop.hive.metastore.api.AbortTxnRequest;
+import org.apache.hadoop.hive.metastore.HiveMetaHookLoader;
 import org.apache.hadoop.hive.metastore.api.AddCheckConstraintRequest;
 import org.apache.hadoop.hive.metastore.api.AddDefaultConstraintRequest;
 import org.apache.hadoop.hive.metastore.api.AddNotNullConstraintRequest;
@@ -11,6 +27,7 @@ import org.apache.hadoop.hive.metastore.api.AddUniqueConstraintRequest;
 import org.apache.hadoop.hive.metastore.api.AllocateTableWriteIdsRequest;
 import org.apache.hadoop.hive.metastore.api.AllocateTableWriteIdsResponse;
 import org.apache.hadoop.hive.metastore.api.AlreadyExistsException;
+import org.apache.hadoop.hive.metastore.api.AlterCatalogRequest;
 import org.apache.hadoop.hive.metastore.api.AlterISchemaRequest;
 import org.apache.hadoop.hive.metastore.api.CheckConstraintsRequest;
 import org.apache.hadoop.hive.metastore.api.CheckConstraintsResponse;
@@ -29,8 +46,6 @@ import org.apache.hadoop.hive.metastore.api.FindSchemasByColsRqst;
 import org.apache.hadoop.hive.metastore.api.GetCatalogRequest;
 import org.apache.hadoop.hive.metastore.api.GetCatalogResponse;
 import org.apache.hadoop.hive.metastore.api.GetCatalogsResponse;
-import org.apache.hadoop.hive.metastore.api.GetOpenTxnsInfoResponse;
-import org.apache.hadoop.hive.metastore.api.GetOpenTxnsResponse;
 import org.apache.hadoop.hive.metastore.api.GetRuntimeStatsRequest;
 import org.apache.hadoop.hive.metastore.api.GetSerdeRequest;
 import org.apache.hadoop.hive.metastore.api.GetTableRequest;
@@ -57,8 +72,6 @@ import org.apache.hadoop.hive.metastore.api.NotNullConstraintsRequest;
 import org.apache.hadoop.hive.metastore.api.NotNullConstraintsResponse;
 import org.apache.hadoop.hive.metastore.api.NotificationEventsCountRequest;
 import org.apache.hadoop.hive.metastore.api.NotificationEventsCountResponse;
-import org.apache.hadoop.hive.metastore.api.OpenTxnRequest;
-import org.apache.hadoop.hive.metastore.api.OpenTxnsResponse;
 import org.apache.hadoop.hive.metastore.api.Partition;
 import org.apache.hadoop.hive.metastore.api.PartitionValuesRequest;
 import org.apache.hadoop.hive.metastore.api.PartitionValuesResponse;
@@ -118,8 +131,7 @@ import org.apache.hadoop.hive.metastore.api.WMValidateResourcePlanRequest;
 import org.apache.hadoop.hive.metastore.api.WMValidateResourcePlanResponse;
 import org.apache.thrift.TException;
 
-import java.util.List;
-import java.util.Map;
+import com.facebook.fb303.fb_status;
 
 public class AWSCatalogMetastoreClientHive3 extends AWSCatalogMetastoreClient
 {
@@ -130,6 +142,11 @@ public class AWSCatalogMetastoreClientHive3 extends AWSCatalogMetastoreClient
         super(builder);
     }
 
+    public AWSCatalogMetastoreClientHive3(HiveConf conf, HiveMetaHookLoader hook)
+            throws MetaException
+    {
+        super(conf, hook);
+    }
 
     @Override
     public boolean isOpen()
@@ -140,6 +157,13 @@ public class AWSCatalogMetastoreClientHive3 extends AWSCatalogMetastoreClient
     @Override
     public void create_catalog(CreateCatalogRequest createCatalogRequest)
             throws AlreadyExistsException, InvalidObjectException, MetaException, TException
+    {
+
+    }
+
+    @Override
+    public void alter_catalog(AlterCatalogRequest alterCatalogRequest)
+            throws NoSuchObjectException, InvalidOperationException, MetaException, TException
     {
 
     }
@@ -271,7 +295,7 @@ public class AWSCatalogMetastoreClientHive3 extends AWSCatalogMetastoreClient
     }
 
     @Override
-    public Map<String, Materialization> get_materialization_invalidation_info(String s, List<String> list)
+    public Materialization get_materialization_invalidation_info(CreationMetadata creationMetadata, String s)
             throws MetaException, InvalidOperationException, UnknownDBException, TException
     {
         return null;
@@ -383,7 +407,7 @@ public class AWSCatalogMetastoreClientHive3 extends AWSCatalogMetastoreClient
     }
 
     @Override
-    public GrantRevokePrivilegeResponse refresh_privileges(HiveObjectRef hiveObjectRef, GrantRevokePrivilegeRequest grantRevokePrivilegeRequest)
+    public GrantRevokePrivilegeResponse refresh_privileges(HiveObjectRef hiveObjectRef, String s, GrantRevokePrivilegeRequest grantRevokePrivilegeRequest)
             throws MetaException, TException
     {
         return null;

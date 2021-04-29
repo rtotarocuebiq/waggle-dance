@@ -1,16 +1,20 @@
+/**
+ * Copyright (C) 2016-2021 Expedia, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.amazonaws.glue.catalog.converters;
 
-import org.apache.hadoop.hive.metastore.api.Database;
-import org.apache.hadoop.hive.metastore.api.FieldSchema;
-import org.apache.hadoop.hive.metastore.api.Function;
-import org.apache.hadoop.hive.metastore.api.Index;
-import org.apache.hadoop.hive.metastore.api.Order;
-import org.apache.hadoop.hive.metastore.api.Partition;
-import org.apache.hadoop.hive.metastore.api.ResourceUri;
-import org.apache.hadoop.hive.metastore.api.SerDeInfo;
-import org.apache.hadoop.hive.metastore.api.SkewedInfo;
-import org.apache.hadoop.hive.metastore.api.StorageDescriptor;
-import org.apache.hadoop.hive.metastore.api.Table;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -18,11 +22,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static com.amazonaws.glue.catalog.converters.ConverterUtils.INDEX_DB_NAME;
-import static com.amazonaws.glue.catalog.converters.ConverterUtils.INDEX_DEFERRED_REBUILD;
-import static com.amazonaws.glue.catalog.converters.ConverterUtils.INDEX_HANDLER_CLASS;
-import static com.amazonaws.glue.catalog.converters.ConverterUtils.INDEX_ORIGIN_TABLE_NAME;
-import static com.amazonaws.glue.catalog.converters.ConverterUtils.INDEX_TABLE_NAME;
+import org.apache.hadoop.hive.metastore.api.Database;
+import org.apache.hadoop.hive.metastore.api.FieldSchema;
+import org.apache.hadoop.hive.metastore.api.Function;
+import org.apache.hadoop.hive.metastore.api.Order;
+import org.apache.hadoop.hive.metastore.api.Partition;
+import org.apache.hadoop.hive.metastore.api.ResourceUri;
+import org.apache.hadoop.hive.metastore.api.SerDeInfo;
+import org.apache.hadoop.hive.metastore.api.SkewedInfo;
+import org.apache.hadoop.hive.metastore.api.StorageDescriptor;
+import org.apache.hadoop.hive.metastore.api.Table;
 
 public class HiveToCatalogConverter {
 
@@ -133,25 +142,6 @@ public class HiveToCatalogConverter {
     }
 
     return catalogOrderList;
-  }
-
-  public static com.amazonaws.services.glue.model.Table convertIndexToTableObject(Index hiveIndex) {
-    // convert index object to a table object
-    com.amazonaws.services.glue.model.Table catalogIndexTableObject = new com.amazonaws.services.glue.model.Table();
-    catalogIndexTableObject.setName(hiveIndex.getIndexName());
-    catalogIndexTableObject.setCreateTime(new Date((long) (hiveIndex.getCreateTime()) * 1000));
-    catalogIndexTableObject.setLastAccessTime(new Date((long) (hiveIndex.getLastAccessTime()) * 1000));
-    catalogIndexTableObject.setStorageDescriptor(convertStorageDescriptor(hiveIndex.getSd()));
-    catalogIndexTableObject.setParameters(hiveIndex.getParameters());
-
-    // store rest of fields in index to paramter map
-    catalogIndexTableObject.getParameters().put(INDEX_DEFERRED_REBUILD, hiveIndex.isDeferredRebuild() ? "TRUE": "FALSE");
-    catalogIndexTableObject.getParameters().put(INDEX_TABLE_NAME, hiveIndex.getIndexTableName());
-    catalogIndexTableObject.getParameters().put(INDEX_HANDLER_CLASS, hiveIndex.getIndexHandlerClass());
-    catalogIndexTableObject.getParameters().put(INDEX_DB_NAME, hiveIndex.getDbName());
-    catalogIndexTableObject.getParameters().put(INDEX_ORIGIN_TABLE_NAME, hiveIndex.getOrigTableName());
-
-    return catalogIndexTableObject;
   }
   
   public static com.amazonaws.services.glue.model.Partition convertPartition(Partition src) {

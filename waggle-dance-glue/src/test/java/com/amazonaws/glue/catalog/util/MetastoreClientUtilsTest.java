@@ -1,8 +1,33 @@
+/**
+ * Copyright (C) 2016-2021 Expedia, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.amazonaws.glue.catalog.util;
 
-import com.amazonaws.glue.catalog.converters.CatalogToHiveConverter;
+import static org.apache.hadoop.hive.metastore.TableType.EXTERNAL_TABLE;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
-import com.google.common.collect.ImmutableMap;
+import static com.amazonaws.glue.catalog.util.TestObjects.getTestDatabase;
+import static com.amazonaws.glue.catalog.util.TestObjects.getTestTable;
+
+import java.util.Map;
+
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.metastore.Warehouse;
@@ -13,17 +38,8 @@ import org.apache.hadoop.hive.metastore.api.Table;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Map;
-
-import static com.amazonaws.glue.catalog.util.TestObjects.getTestDatabase;
-import static com.amazonaws.glue.catalog.util.TestObjects.getTestTable;
-import static org.apache.hadoop.hive.metastore.TableType.EXTERNAL_TABLE;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import com.amazonaws.glue.catalog.converters.CatalogToHiveConverter;
+import com.google.common.collect.ImmutableMap;
 
 public class MetastoreClientUtilsTest {
 

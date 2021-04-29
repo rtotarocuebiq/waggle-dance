@@ -1,43 +1,50 @@
+/**
+ * Copyright (C) 2016-2021 Expedia, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.amazonaws.glue.catalog.metastore;
 
-import com.amazonaws.AmazonServiceException;
-import com.amazonaws.glue.catalog.converters.CatalogToHiveConverter;
-import com.amazonaws.glue.catalog.converters.GlueInputConverter;
-import com.amazonaws.glue.catalog.converters.HiveToCatalogConverter;
-import com.amazonaws.glue.catalog.util.BatchDeletePartitionsHelper;
-import com.amazonaws.glue.catalog.util.ExpressionHelper;
-import com.amazonaws.glue.catalog.util.LoggingHelper;
-import com.amazonaws.glue.catalog.util.MetastoreClientUtils;
-import com.amazonaws.glue.shims.AwsGlueHiveShims;
-import com.amazonaws.glue.shims.ShimsLoader;
-import com.amazonaws.services.glue.AWSGlue;
-import com.amazonaws.services.glue.model.AlreadyExistsException;
-import com.amazonaws.services.glue.model.EntityNotFoundException;
-import com.amazonaws.services.glue.model.GetDatabaseRequest;
-import com.amazonaws.services.glue.model.GetUserDefinedFunctionsRequest;
-import com.amazonaws.services.glue.model.Partition;
-import com.amazonaws.services.glue.model.Table;
-import com.amazonaws.services.glue.model.UpdatePartitionRequest;
-import com.amazonaws.services.glue.model.UserDefinedFunction;
-import com.google.common.base.Objects;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Strings;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import com.hotels.bdp.waggledance.client.CloseableThriftHiveMetastoreIface;
+import static org.apache.hadoop.hive.metastore.Warehouse.DEFAULT_CATALOG_NAME;
+import static org.apache.hadoop.hive.metastore.Warehouse.DEFAULT_DATABASE_COMMENT;
+import static org.apache.hadoop.hive.metastore.Warehouse.DEFAULT_DATABASE_NAME;
+
+import static com.amazonaws.glue.catalog.util.MetastoreClientUtils.isExternalTable;
+
+import java.io.IOException;
+import java.net.URI;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.common.FileUtils;
 import org.apache.hadoop.hive.common.ObjectPair;
-import org.apache.hadoop.hive.common.ValidReadTxnList;
-import org.apache.hadoop.hive.common.ValidTxnList;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.conf.HiveConf.ConfVars;
 import org.apache.hadoop.hive.metastore.HiveMetaHookLoader;
-import org.apache.hadoop.hive.metastore.IMetaStoreClient;
-import org.apache.hadoop.hive.metastore.PartitionDropOptions;
 import org.apache.hadoop.hive.metastore.TableType;
 import org.apache.hadoop.hive.metastore.Warehouse;
 import org.apache.hadoop.hive.metastore.api.AbortTxnRequest;
@@ -54,7 +61,6 @@ import org.apache.hadoop.hive.metastore.api.CheckLockRequest;
 import org.apache.hadoop.hive.metastore.api.ClearFileMetadataRequest;
 import org.apache.hadoop.hive.metastore.api.ClearFileMetadataResult;
 import org.apache.hadoop.hive.metastore.api.ColumnStatistics;
-import org.apache.hadoop.hive.metastore.api.ColumnStatisticsData;
 import org.apache.hadoop.hive.metastore.api.ColumnStatisticsDesc;
 import org.apache.hadoop.hive.metastore.api.ColumnStatisticsObj;
 import org.apache.hadoop.hive.metastore.api.CommitTxnRequest;
@@ -63,7 +69,6 @@ import org.apache.hadoop.hive.metastore.api.CompactionResponse;
 import org.apache.hadoop.hive.metastore.api.CompactionType;
 import org.apache.hadoop.hive.metastore.api.ConfigValSecurityException;
 import org.apache.hadoop.hive.metastore.api.CurrentNotificationEventId;
-import org.apache.hadoop.hive.metastore.api.DataOperationType;
 import org.apache.hadoop.hive.metastore.api.Database;
 import org.apache.hadoop.hive.metastore.api.DropConstraintRequest;
 import org.apache.hadoop.hive.metastore.api.DropPartitionsExpr;
@@ -95,7 +100,6 @@ import org.apache.hadoop.hive.metastore.api.HeartbeatTxnRangeResponse;
 import org.apache.hadoop.hive.metastore.api.HiveObjectPrivilege;
 import org.apache.hadoop.hive.metastore.api.HiveObjectRef;
 import org.apache.hadoop.hive.metastore.api.HiveObjectType;
-import org.apache.hadoop.hive.metastore.api.InvalidInputException;
 import org.apache.hadoop.hive.metastore.api.InvalidObjectException;
 import org.apache.hadoop.hive.metastore.api.InvalidOperationException;
 import org.apache.hadoop.hive.metastore.api.InvalidPartitionException;
@@ -117,7 +121,6 @@ import org.apache.hadoop.hive.metastore.api.PartitionsByExprResult;
 import org.apache.hadoop.hive.metastore.api.PartitionsStatsRequest;
 import org.apache.hadoop.hive.metastore.api.PrimaryKeysRequest;
 import org.apache.hadoop.hive.metastore.api.PrimaryKeysResponse;
-import org.apache.hadoop.hive.metastore.api.PrincipalType;
 import org.apache.hadoop.hive.metastore.api.PutFileMetadataRequest;
 import org.apache.hadoop.hive.metastore.api.PutFileMetadataResult;
 import org.apache.hadoop.hive.metastore.api.RequestPartsSpec;
@@ -127,13 +130,11 @@ import org.apache.hadoop.hive.metastore.api.SQLForeignKey;
 import org.apache.hadoop.hive.metastore.api.SQLNotNullConstraint;
 import org.apache.hadoop.hive.metastore.api.SQLPrimaryKey;
 import org.apache.hadoop.hive.metastore.api.SQLUniqueConstraint;
-import org.apache.hadoop.hive.metastore.api.SetPartitionsStatsRequest;
 import org.apache.hadoop.hive.metastore.api.ShowCompactRequest;
 import org.apache.hadoop.hive.metastore.api.ShowCompactResponse;
 import org.apache.hadoop.hive.metastore.api.ShowLocksRequest;
 import org.apache.hadoop.hive.metastore.api.ShowLocksResponse;
 import org.apache.hadoop.hive.metastore.api.TableMeta;
-import org.apache.hadoop.hive.metastore.api.ThriftHiveMetastore;
 import org.apache.hadoop.hive.metastore.api.TxnAbortedException;
 import org.apache.hadoop.hive.metastore.api.TxnOpenException;
 import org.apache.hadoop.hive.metastore.api.UnknownDBException;
@@ -141,36 +142,35 @@ import org.apache.hadoop.hive.metastore.api.UnknownPartitionException;
 import org.apache.hadoop.hive.metastore.api.UnknownTableException;
 import org.apache.hadoop.hive.metastore.api.UnlockRequest;
 import org.apache.hadoop.hive.metastore.api.hive_metastoreConstants;
-import org.apache.hadoop.hive.metastore.partition.spec.PartitionListComposingSpecProxy;
 import org.apache.hadoop.hive.metastore.partition.spec.PartitionSpecProxy;
-import org.apache.hadoop.hive.metastore.utils.MetaStoreUtils;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
 
-import java.io.IOException;
-import java.net.URI;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
+import com.amazonaws.AmazonServiceException;
+import com.amazonaws.glue.catalog.converters.CatalogToHiveConverter;
+import com.amazonaws.glue.catalog.converters.GlueInputConverter;
+import com.amazonaws.glue.catalog.util.BatchDeletePartitionsHelper;
+import com.amazonaws.glue.catalog.util.ExpressionHelper;
+import com.amazonaws.glue.catalog.util.LoggingHelper;
+import com.amazonaws.glue.catalog.util.MetastoreClientUtils;
+import com.amazonaws.glue.shims.AwsGlueHiveShims;
+import com.amazonaws.glue.shims.ShimsLoader;
+import com.amazonaws.services.glue.AWSGlue;
+import com.amazonaws.services.glue.model.AlreadyExistsException;
+import com.amazonaws.services.glue.model.EntityNotFoundException;
+import com.amazonaws.services.glue.model.GetDatabaseRequest;
+import com.amazonaws.services.glue.model.GetUserDefinedFunctionsRequest;
+import com.amazonaws.services.glue.model.Partition;
+import com.amazonaws.services.glue.model.UpdatePartitionRequest;
+import com.amazonaws.services.glue.model.UserDefinedFunction;
+import com.google.common.base.Objects;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
-import static com.amazonaws.glue.catalog.converters.ConverterUtils.catalogTableToString;
-import static com.amazonaws.glue.catalog.converters.ConverterUtils.stringToCatalogTable;
-import static com.amazonaws.glue.catalog.metastore.GlueMetastoreClientDelegate.INDEX_PREFIX;
-import static com.amazonaws.glue.catalog.util.MetastoreClientUtils.isExternalTable;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.hadoop.hive.metastore.Warehouse.DEFAULT_CATALOG_NAME;
-import static org.apache.hadoop.hive.metastore.Warehouse.DEFAULT_DATABASE_COMMENT;
-import static org.apache.hadoop.hive.metastore.Warehouse.DEFAULT_DATABASE_NAME;
+import com.hotels.bdp.waggledance.client.CloseableThriftHiveMetastoreIface;
 
 public abstract class AWSCatalogMetastoreClient implements CloseableThriftHiveMetastoreIface
 {
@@ -699,10 +699,10 @@ public abstract class AWSCatalogMetastoreClient implements CloseableThriftHiveMe
     glueMetastoreClientDelegate.dropFunction(dbName, functionName);
   }
 
-  private void deleteParentRecursive(Path parent, int depth, boolean mustPurge) throws IOException, MetaException {
+  private void deleteParentRecursive(Path parent, int depth, boolean mustPurge, Database db) throws IOException, MetaException {
     if (depth > 0 && parent != null && wh.isWritable(parent) && wh.isEmpty(parent)) {
-      wh.deleteDir(parent, true, mustPurge);
-      deleteParentRecursive(parent.getParent(), depth - 1, mustPurge);
+      wh.deleteDir(parent, true, mustPurge, db);
+      deleteParentRecursive(parent.getParent(), depth - 1, mustPurge, db);
     }
   }
 
@@ -865,10 +865,11 @@ public abstract class AWSCatalogMetastoreClient implements CloseableThriftHiveMe
         return;
       }
       boolean mustPurge = isMustPurge(table, ifPurge);
-      wh.deleteDir(partPath, true, mustPurge);
+      Database database = get_database(dbName);
+      wh.deleteDir(partPath, true, mustPurge,  database);
       try {
         List<String> values = partition.getValues();
-        deleteParentRecursive(partPath.getParent(), values.size() - 1, mustPurge);
+        deleteParentRecursive(partPath.getParent(), values.size() - 1, mustPurge,database);
       } catch (IOException e) {
         throw new MetaException(e.getMessage());
       }

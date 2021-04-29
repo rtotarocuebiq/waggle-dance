@@ -1,13 +1,36 @@
+/**
+ * Copyright (C) 2016-2021 Expedia, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.amazonaws.glue.catalog.converters;
 
-import com.amazonaws.services.glue.model.ErrorDetail;
+import static org.apache.commons.lang3.ObjectUtils.firstNonNull;
+
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import org.apache.hadoop.hive.metastore.api.AlreadyExistsException;
 import org.apache.hadoop.hive.metastore.api.Database;
 import org.apache.hadoop.hive.metastore.api.FieldSchema;
 import org.apache.hadoop.hive.metastore.api.Function;
 import org.apache.hadoop.hive.metastore.api.FunctionType;
-import org.apache.hadoop.hive.metastore.api.Index;
 import org.apache.hadoop.hive.metastore.api.InvalidObjectException;
 import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.hadoop.hive.metastore.api.NoSuchObjectException;
@@ -23,25 +46,11 @@ import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.hadoop.hive.metastore.api.TableMeta;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
+
+import com.amazonaws.services.glue.model.ErrorDetail;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import static com.amazonaws.glue.catalog.converters.ConverterUtils.INDEX_DEFERRED_REBUILD;
-import static com.amazonaws.glue.catalog.converters.ConverterUtils.INDEX_TABLE_NAME;
-import static com.amazonaws.glue.catalog.converters.ConverterUtils.INDEX_DB_NAME;
-import static com.amazonaws.glue.catalog.converters.ConverterUtils.INDEX_HANDLER_CLASS;
-import static com.amazonaws.glue.catalog.converters.ConverterUtils.INDEX_ORIGIN_TABLE_NAME;
-
-import static org.apache.commons.lang3.ObjectUtils.firstNonNull;
 
 public class CatalogToHiveConverter {
 
@@ -225,24 +234,6 @@ public class CatalogToHiveConverter {
     hiveSkewedInfo.setSkewedColValues(convertSkewedValue(catalogSkewedInfo.getSkewedColumnValues()));
     hiveSkewedInfo.setSkewedColValueLocationMaps(convertSkewedMap(catalogSkewedInfo.getSkewedColumnValueLocationMaps()));
     return hiveSkewedInfo;
-  }
-
-  public static Index convertTableObjectToIndex(com.amazonaws.services.glue.model.Table catalogTable) {
-    Index hiveIndex = new Index();
-    Map<String, String> parameters = catalogTable.getParameters();
-    hiveIndex.setIndexName(catalogTable.getName());
-    hiveIndex.setCreateTime((int) (catalogTable.getCreateTime().getTime() / 1000));
-    hiveIndex.setLastAccessTime((int) (catalogTable.getLastAccessTime().getTime() / 1000));
-    hiveIndex.setSd(convertStorageDescriptor(catalogTable.getStorageDescriptor()));
-    hiveIndex.setParameters(catalogTable.getParameters());
-
-    hiveIndex.setDeferredRebuild(parameters.get(INDEX_DEFERRED_REBUILD).equals("TRUE"));
-    hiveIndex.setIndexHandlerClass(parameters.get(INDEX_HANDLER_CLASS));
-    hiveIndex.setDbName(parameters.get(INDEX_DB_NAME));
-    hiveIndex.setOrigTableName(parameters.get(INDEX_ORIGIN_TABLE_NAME));
-    hiveIndex.setIndexTableName(parameters.get(INDEX_TABLE_NAME));
-
-    return hiveIndex;
   }
 
   public static Partition convertPartition(com.amazonaws.services.glue.model.Partition src) {

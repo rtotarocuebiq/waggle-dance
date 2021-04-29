@@ -1,28 +1,42 @@
+/**
+ * Copyright (C) 2016-2021 Expedia, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.amazonaws.glue.catalog.metastore;
 
-import com.amazonaws.AmazonServiceException;
-import com.amazonaws.glue.catalog.converters.CatalogToHiveConverter;
-import com.amazonaws.glue.catalog.converters.GlueInputConverter;
-import com.amazonaws.glue.catalog.converters.HiveToCatalogConverter;
-import com.amazonaws.glue.catalog.util.BatchCreatePartitionsHelper;
-import com.amazonaws.glue.catalog.util.ExpressionHelper;
-import com.amazonaws.glue.catalog.util.MetastoreClientUtils;
-import com.amazonaws.glue.catalog.util.PartitionKey;
-import com.amazonaws.glue.shims.AwsGlueHiveShims;
-import com.amazonaws.glue.shims.ShimsLoader;
-import com.amazonaws.services.glue.model.Column;
-import com.amazonaws.services.glue.model.Database;
-import com.amazonaws.services.glue.model.DatabaseInput;
-import com.amazonaws.services.glue.model.EntityNotFoundException;
-import com.amazonaws.services.glue.model.Partition;
-import com.amazonaws.services.glue.model.PartitionInput;
-import com.amazonaws.services.glue.model.PartitionValueList;
-import com.amazonaws.services.glue.model.Table;
-import com.amazonaws.services.glue.model.TableInput;
-import com.amazonaws.services.glue.model.UserDefinedFunction;
-import com.amazonaws.services.glue.model.UserDefinedFunctionInput;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
+import static org.apache.hadoop.hive.metastore.HiveMetaStore.PUBLIC;
+import static org.apache.hadoop.hive.metastore.TableType.EXTERNAL_TABLE;
+import static org.apache.hadoop.hive.metastore.TableType.MANAGED_TABLE;
+
+import static com.amazonaws.glue.catalog.util.MetastoreClientUtils.deepCopyMap;
+import static com.amazonaws.glue.catalog.util.MetastoreClientUtils.isExternalTable;
+import static com.amazonaws.glue.catalog.util.MetastoreClientUtils.makeDirs;
+import static com.amazonaws.glue.catalog.util.MetastoreClientUtils.validateGlueTable;
+import static com.amazonaws.glue.catalog.util.MetastoreClientUtils.validateTableObject;
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
+
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.Path;
@@ -49,9 +63,8 @@ import org.apache.hadoop.hive.metastore.api.GetRoleGrantsForPrincipalResponse;
 import org.apache.hadoop.hive.metastore.api.HeartbeatTxnRangeResponse;
 import org.apache.hadoop.hive.metastore.api.HiveObjectPrivilege;
 import org.apache.hadoop.hive.metastore.api.HiveObjectRef;
-import org.apache.hadoop.hive.metastore.api.Index;
-import org.apache.hadoop.hive.metastore.api.InvalidOperationException;
 import org.apache.hadoop.hive.metastore.api.InvalidObjectException;
+import org.apache.hadoop.hive.metastore.api.InvalidOperationException;
 import org.apache.hadoop.hive.metastore.api.LockRequest;
 import org.apache.hadoop.hive.metastore.api.LockResponse;
 import org.apache.hadoop.hive.metastore.api.MetaException;
@@ -76,28 +89,29 @@ import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.log4j.Logger;
 import org.apache.thrift.TException;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
-import java.util.regex.Pattern;
-
-import static com.amazonaws.glue.catalog.converters.ConverterUtils.stringToCatalogTable;
-import static com.amazonaws.glue.catalog.util.MetastoreClientUtils.deepCopyMap;
-import static com.amazonaws.glue.catalog.util.MetastoreClientUtils.isExternalTable;
-import static com.amazonaws.glue.catalog.util.MetastoreClientUtils.makeDirs;
-import static com.amazonaws.glue.catalog.util.MetastoreClientUtils.validateGlueTable;
-import static com.amazonaws.glue.catalog.util.MetastoreClientUtils.validateTableObject;
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.hadoop.hive.metastore.HiveMetaStore.PUBLIC;
-import static org.apache.hadoop.hive.metastore.TableType.EXTERNAL_TABLE;
-import static org.apache.hadoop.hive.metastore.TableType.MANAGED_TABLE;
+import com.amazonaws.AmazonServiceException;
+import com.amazonaws.glue.catalog.converters.CatalogToHiveConverter;
+import com.amazonaws.glue.catalog.converters.GlueInputConverter;
+import com.amazonaws.glue.catalog.converters.HiveToCatalogConverter;
+import com.amazonaws.glue.catalog.util.BatchCreatePartitionsHelper;
+import com.amazonaws.glue.catalog.util.ExpressionHelper;
+import com.amazonaws.glue.catalog.util.MetastoreClientUtils;
+import com.amazonaws.glue.catalog.util.PartitionKey;
+import com.amazonaws.glue.shims.AwsGlueHiveShims;
+import com.amazonaws.glue.shims.ShimsLoader;
+import com.amazonaws.services.glue.model.Column;
+import com.amazonaws.services.glue.model.Database;
+import com.amazonaws.services.glue.model.DatabaseInput;
+import com.amazonaws.services.glue.model.EntityNotFoundException;
+import com.amazonaws.services.glue.model.Partition;
+import com.amazonaws.services.glue.model.PartitionInput;
+import com.amazonaws.services.glue.model.PartitionValueList;
+import com.amazonaws.services.glue.model.Table;
+import com.amazonaws.services.glue.model.TableInput;
+import com.amazonaws.services.glue.model.UserDefinedFunction;
+import com.amazonaws.services.glue.model.UserDefinedFunctionInput;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 /***
  * Delegate Class to provide all common functionality
@@ -174,7 +188,7 @@ public class GlueMetastoreClientDelegate {
       glueMetastore.createDatabase(catalogDatabase);
     } catch (AmazonServiceException e) {
       if (madeDir) {
-        wh.deleteDir(dbPath, true);
+        wh.deleteDir(dbPath,true, database);
       }
       throw CatalogToHiveConverter.wrapInHiveException(e);
     } catch (Exception e) {
@@ -245,7 +259,7 @@ public class GlueMetastoreClientDelegate {
 
   public void dropDatabase(String name, boolean deleteData, boolean ignoreUnknownDb, boolean cascade) throws TException {
     checkArgument(StringUtils.isNotEmpty(name), "name cannot be null or empty");
-
+    org.apache.hadoop.hive.metastore.api.Database database = getDatabase(name);
     String dbLocation;
     try {
       List<String> tables = getTables(name, MATCH_ALL);
@@ -255,6 +269,7 @@ public class GlueMetastoreClientDelegate {
       dbLocation = db.getLocationUri();
 
       // TODO: handle cascade
+
       if (isEmptyDatabase || cascade) {
         glueMetastore.deleteDatabase(name);
       } else {
@@ -276,7 +291,7 @@ public class GlueMetastoreClientDelegate {
 
     if (deleteData) {
       try {
-        wh.deleteDir(new Path(dbLocation), true);
+        wh.deleteDir(new Path(dbLocation), true, database);
       } catch (Exception e) {
         logger.error("Unable to remove database directory " + dbLocation, e);
       }
@@ -315,7 +330,7 @@ public class GlueMetastoreClientDelegate {
     } catch (AmazonServiceException e) {
       if (dirCreated) {
         Path tblPath = new Path(tbl.getSd().getLocation());
-        wh.deleteDir(tblPath, true);
+        wh.deleteDir(tblPath, true, getDatabase(tbl.getDbName()));
       }
       throw CatalogToHiveConverter.wrapInHiveException(e);
     } catch (Exception e){
@@ -484,7 +499,6 @@ public class GlueMetastoreClientDelegate {
     String tblLocation = tbl.getSd().getLocation();
     boolean isExternal = isExternalTable(tbl);
     dropPartitionsForTable(dbName, tableName, deleteData && !isExternal);
-    dropIndexesForTable(dbName, tableName, deleteData && !isExternal);
 
     try {
       glueMetastore.deleteTable(dbName, tableName);
@@ -499,7 +513,7 @@ public class GlueMetastoreClientDelegate {
     if (StringUtils.isNotEmpty(tblLocation) && deleteData && !isExternal) {
       Path tblPath = new Path(tblLocation);
       try {
-        wh.deleteDir(tblPath, true, ifPurge);
+        wh.deleteDir(tblPath, true, ifPurge, getDatabase(dbName));
       } catch (Exception e){
         logger.error("Unable to remove table directory " + tblPath, e);
       }
@@ -510,13 +524,6 @@ public class GlueMetastoreClientDelegate {
     List<org.apache.hadoop.hive.metastore.api.Partition> partitionsToDelete = getPartitions(dbName, tableName, null, NO_MAX);
     for (org.apache.hadoop.hive.metastore.api.Partition part : partitionsToDelete) {
       dropPartition(dbName, tableName, part.getValues(), true, deleteData, false);
-    }
-  }
-
-  private void dropIndexesForTable(String dbName, String tableName, boolean deleteData) throws TException {
-    List<Index> indexesToDelete = listIndexes(dbName, tableName);
-    for (Index index : indexesToDelete) {
-      dropTable(dbName, index.getIndexTableName(), deleteData, true, false);
     }
   }
 
@@ -638,7 +645,7 @@ public class GlueMetastoreClientDelegate {
       }
     } catch (MetaException e) {
       for (Path path : addedPath.values()) {
-        deletePath(path);
+        deletePath(path,getDatabase(dbName));
       }
       throw e;
     }
@@ -688,18 +695,20 @@ public class GlueMetastoreClientDelegate {
     }
   }
 
-  private void deletePathForPartitions(List<Partition> partitions, Map<PartitionKey, Path> addedPath) {
+  private void deletePathForPartitions(List<Partition> partitions, Map<PartitionKey, Path> addedPath)
+          throws TException
+  {
     for (Partition partition : partitions) {
       Path path = addedPath.get(new PartitionKey(partition));
       if (path != null) {
-        deletePath(path);
+        deletePath(path, getDatabase(partition.getDatabaseName()));
       }
     }
   }
 
-  private void deletePath(Path path) {
+  private void deletePath(Path path, org.apache.hadoop.hive.metastore.api.Database db) {
     try {
-      wh.deleteDir(path, true);
+      wh.deleteDir(path, true, db);
     } catch (MetaException e) {
       logger.error("Warehouse delete directory failed. ", e);
     }
@@ -893,10 +902,10 @@ public class GlueMetastoreClientDelegate {
         return;
       }
       boolean mustPurge = isMustPurge(table, ifPurge);
-      wh.deleteDir(partPath, true, mustPurge);
+      wh.deleteDir(partPath, true, mustPurge, getDatabase(dbName));
       try {
         List<String> values = partition.getValues();
-        deleteParentRecursive(partPath.getParent(), values.size() - 1, mustPurge);
+        deleteParentRecursive(partPath.getParent(), values.size() - 1, mustPurge, getDatabase(dbName));
       } catch (IOException e) {
         throw new MetaException(e.getMessage());
       }
@@ -913,10 +922,10 @@ public class GlueMetastoreClientDelegate {
   /**
    * Taken from HiveMetaStore#deleteParentRecursive
    */
-  private void deleteParentRecursive(Path parent, int depth, boolean mustPurge) throws IOException, MetaException {
+  private void deleteParentRecursive(Path parent, int depth, boolean mustPurge, org.apache.hadoop.hive.metastore.api.Database db) throws IOException, MetaException {
     if (depth > 0 && parent != null && wh.isWritable(parent) && wh.isEmpty(parent)) {
-      wh.deleteDir(parent, true, mustPurge);
-      deleteParentRecursive(parent.getParent(), depth - 1, mustPurge);
+      wh.deleteDir(parent, true, mustPurge, db);
+      deleteParentRecursive(parent.getParent(), depth - 1, mustPurge, db);
     }
   }
 
@@ -962,29 +971,6 @@ public class GlueMetastoreClientDelegate {
     List<String> vals = Lists.newArrayList();
     vals.addAll(map.values());
     return vals;
-  }
-
-  // ============================ Index ==============================
-
-  public List<Index> listIndexes(String dbName, String tblName) throws TException {
-    checkArgument(StringUtils.isNotEmpty(dbName), "dbName cannot be null or empty");
-    checkArgument(StringUtils.isNotEmpty(tblName), "tblName cannot be null or empty");
-
-    org.apache.hadoop.hive.metastore.api.Table originTable = getTable(dbName, tblName);
-    Map<String, String> parameters = originTable.getParameters();
-    List<Table> indexTableObjects = Lists.newArrayList();
-    for(String key : parameters.keySet()) {
-      if(key.startsWith(INDEX_PREFIX)) {
-        String serialisedString = parameters.get(key);
-        indexTableObjects.add(stringToCatalogTable(serialisedString));
-      }
-    }
-
-    List<Index> hiveIndexList = Lists.newArrayList();
-    for (Table catalogIndexTableObject : indexTableObjects) {
-      hiveIndexList.add(CatalogToHiveConverter.convertTableObjectToIndex(catalogIndexTableObject));
-    }
-    return hiveIndexList;
   }
 
   // ======================= Roles & Privilege =======================

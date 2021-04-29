@@ -157,6 +157,13 @@
       </exclusions>
     </dependency>
 
+    <!-- GLUE -->
+    <dependency>
+      <groupId>com.hotels</groupId>
+      <artifactId>waggle-dance-glue</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
     <!-- Hadoop -->
     <dependency>
       <groupId>org.apache.hadoop</groupId>
