@@ -29,6 +29,7 @@
     <module>waggle-dance-boot</module>
     <module>waggle-dance-integration-tests</module>
     <module>waggle-dance</module>
+    <module>waggle-dance-glue</module>
 <!--    <module>waggle-dance-rpm</module>-->
   </modules>
 
@@ -47,7 +48,8 @@
     <guava.version>23.0</guava.version>
     <guice.version>4.0</guice.version>
     <hcommon-hive-metastore.version>1.2.3</hcommon-hive-metastore.version>
-  </properties>
+    <aws.sdk.version>1.11.267</aws.sdk.version>
+  </properties>s
 
   <dependencyManagement>
     <dependencies>
