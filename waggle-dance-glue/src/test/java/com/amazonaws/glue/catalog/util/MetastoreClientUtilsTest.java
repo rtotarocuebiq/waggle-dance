@@ -79,7 +79,7 @@ public class MetastoreClientUtilsTest {
   @Test(expected = MetaException.class)
   public void testMakeDirsCannotCreateDir() throws Exception {
     when(wh.isDir(testPath)).thenReturn(false);
-    when(wh.mkdirs(testPath, true)).thenReturn(false);
+    when(wh.mkdirs(testPath)).thenReturn(false);
     MetastoreClientUtils.makeDirs(wh, testPath);
   }
 

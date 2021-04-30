@@ -28,6 +28,7 @@ import static com.hotels.bdp.waggledance.api.model.AbstractMetaStore.newFederate
 import java.util.Arrays;
 
 import org.apache.hadoop.hive.metastore.DefaultMetaStoreFilterHookImpl;
+import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.thrift.TException;
 import org.junit.Before;
 import org.junit.Rule;
@@ -112,7 +113,9 @@ public class MetaStoreMappingFactoryImplTest {
   }
 
   @Test
-  public void unreachableMetastoreClient() {
+  public void unreachableMetastoreClient()
+          throws MetaException
+  {
     CloseableThriftHiveMetastoreIfaceClientFactory closeableThriftHiveMetastoreIfaceClientFactory = Mockito
         .mock(CloseableThriftHiveMetastoreIfaceClientFactory.class);
     MetaStoreMappingFactoryImpl factory = new MetaStoreMappingFactoryImpl(waggleDanceConfiguration,

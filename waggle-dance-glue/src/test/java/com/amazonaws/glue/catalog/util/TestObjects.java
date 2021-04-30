@@ -38,7 +38,6 @@ import org.apache.hadoop.hive.metastore.api.DoubleColumnStatsData;
 import org.apache.hadoop.hive.metastore.api.HiveObjectPrivilege;
 import org.apache.hadoop.hive.metastore.api.HiveObjectRef;
 import org.apache.hadoop.hive.metastore.api.HiveObjectType;
-import org.apache.hadoop.hive.metastore.api.Index;
 import org.apache.hadoop.hive.metastore.api.LongColumnStatsData;
 import org.apache.hadoop.hive.metastore.api.PrivilegeBag;
 import org.apache.hadoop.hive.metastore.api.Role;
@@ -159,21 +158,6 @@ public final class TestObjects {
     return fieldList;
   }
 
-  public static Index getTestHiveIndex(final String dbName) {
-    Index index = new Index();
-    index.setIndexName("testIndex" + UUID.randomUUID().toString().replaceAll("[^a-zA-Z0-9]+", ""));
-    index.setCreateTime((int)(System.currentTimeMillis() / 1000));
-    index.setLastAccessTime((int)(System.currentTimeMillis() / 1000));
-    index.setDbName(dbName);
-    index.setDeferredRebuild(false);
-    index.setOrigTableName("OriginalTable");
-    index.setIndexTableName("IndexTable");
-    index.setIndexHandlerClass("handlerClass");
-    index.setParameters(new HashMap<String, String>());
-    index.setSd(CatalogToHiveConverter.convertStorageDescriptor(getTestStorageDescriptor()));
-
-    return index;
-  }
 
   public static void setIndexParametersForIndexTable(Table indexTable, String dbName, String originTableName) {
     indexTable.getParameters().put(INDEX_DEFERRED_REBUILD, "FALSE");

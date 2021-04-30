@@ -30,6 +30,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.conf.HiveConf.ConfVars;
+import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -66,7 +67,9 @@ public class CloseableThriftHiveMetastoreIfaceClientFactoryTest {
   }
 
   @Test
-  public void defaultFactory() {
+  public void defaultFactory()
+          throws MetaException
+  {
     ArgumentCaptor<HiveConf> hiveConfCaptor = ArgumentCaptor.forClass(HiveConf.class);
 
     factory.newInstance(newFederatedInstance("fed1", THRIFT_URI));
@@ -83,7 +86,9 @@ public class CloseableThriftHiveMetastoreIfaceClientFactoryTest {
   }
 
   @Test
-  public void tunnelingFactory() {
+  public void tunnelingFactory()
+          throws MetaException
+  {
     MetastoreTunnel metastoreTunnel = new MetastoreTunnel();
     metastoreTunnel.setLocalhost("local-machine");
     metastoreTunnel.setPort(2222);

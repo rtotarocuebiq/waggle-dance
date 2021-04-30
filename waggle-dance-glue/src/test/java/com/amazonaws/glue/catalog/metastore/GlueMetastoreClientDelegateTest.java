@@ -162,7 +162,7 @@ public class GlueMetastoreClientDelegateTest {
   private void setupMockWarehouseForPath(Path path, boolean isDir, boolean mkDir) throws Exception {
     when(wh.getDnsPath(path)).thenReturn(path);
     when(wh.isDir(path)).thenReturn(isDir);
-    when(wh.mkdirs(path, true)).thenReturn(mkDir);
+    when(wh.mkdirs(path)).thenReturn(mkDir);
   }
 
   // ===================== Thread Executor =====================
@@ -190,7 +190,7 @@ public class GlueMetastoreClientDelegateTest {
     metastoreClientDelegate.createDatabase(CatalogToHiveConverter.convertDatabase(testDb));
     verify(glueClient, times(1)).createDatabase(any(CreateDatabaseRequest.class));
     verify(wh, times(1)).isDir(dbPath);
-    verify(wh, never()).mkdirs(dbPath, true);
+    verify(wh, never()).mkdirs(dbPath);
   }
 
   @Test
@@ -203,7 +203,7 @@ public class GlueMetastoreClientDelegateTest {
     verify(glueClient, times(1)).createDatabase(captor.capture());
     assertEquals(CATALOG_ID, captor.getValue().getCatalogId());
     verify(wh, times(1)).isDir(dbPath);
-    verify(wh, never()).mkdirs(dbPath, true);
+    verify(wh, never()).mkdirs(dbPath);
   }
   
   @Test
@@ -214,7 +214,7 @@ public class GlueMetastoreClientDelegateTest {
     metastoreClientDelegate.createDatabase(CatalogToHiveConverter.convertDatabase(testDb));
     verify(glueClient, times(1)).createDatabase(any(CreateDatabaseRequest.class));
     verify(wh, times(1)).isDir(dbPath);
-    verify(wh, times(1)).mkdirs(dbPath, true);
+    verify(wh, times(1)).mkdirs(dbPath);
   }
 
   @Test
@@ -310,11 +310,11 @@ public class GlueMetastoreClientDelegateTest {
     when(glueClient.getTables(any(GetTablesRequest.class))).thenReturn(
         new GetTablesResult().withTableList(ImmutableList.<Table>of()));
     Path dbPath = new Path(testDb.getLocationUri());
-    when(wh.deleteDir(dbPath, true)).thenReturn(true);
+    when(wh.deleteDir(dbPath, true, CatalogToHiveConverter.convertDatabase(testDb))).thenReturn(true);
 
     metastoreClientDelegate.dropDatabase(testDb.getName(), true, false, false);
     verify(glueClient, times(1)).deleteDatabase(any(DeleteDatabaseRequest.class));
-    verify(wh, times(1)).deleteDir(dbPath, true);
+    verify(wh, times(1)).deleteDir(dbPath, true, CatalogToHiveConverter.convertDatabase(testDb));
   }
 
   @Test
@@ -324,13 +324,13 @@ public class GlueMetastoreClientDelegateTest {
     when(glueClient.getTables(any(GetTablesRequest.class))).thenReturn(
         new GetTablesResult().withTableList(ImmutableList.<Table>of()));
     Path dbPath = new Path(testDb.getLocationUri());
-    when(wh.deleteDir(dbPath, true)).thenReturn(true);
+    when(wh.deleteDir(dbPath, true, CatalogToHiveConverter.convertDatabase(testDb))).thenReturn(true);
 
     metastoreClientDelegateCatalogId.dropDatabase(testDb.getName(), true, false, false);
     ArgumentCaptor<DeleteDatabaseRequest> captor = ArgumentCaptor.forClass(DeleteDatabaseRequest.class);
     verify(glueClient, times(1)).deleteDatabase(captor.capture());
     DeleteDatabaseRequest request = captor.getValue();
-    verify(wh, times(1)).deleteDir(dbPath, true);
+    verify(wh, times(1)).deleteDir(dbPath, true, CatalogToHiveConverter.convertDatabase(testDb));
     assertEquals(CATALOG_ID, request.getCatalogId());
     assertEquals(testDb.getName(), request.getName());
   }
@@ -342,11 +342,11 @@ public class GlueMetastoreClientDelegateTest {
     when(glueClient.getTables(any(GetTablesRequest.class))).thenReturn(
         new GetTablesResult().withTableList(ImmutableList.<Table>of()));
     Path dbPath = new Path(testDb.getLocationUri());
-    when(wh.deleteDir(dbPath, true)).thenReturn(true);
+    when(wh.deleteDir(dbPath, true,CatalogToHiveConverter.convertDatabase(testDb))).thenReturn(true);
 
     metastoreClientDelegate.dropDatabase(testDb.getName(), false, false, false);
     verify(glueClient, times(1)).deleteDatabase(any(DeleteDatabaseRequest.class));
-    verify(wh, never()).deleteDir(dbPath, true);
+    verify(wh, never()).deleteDir(dbPath, true, CatalogToHiveConverter.convertDatabase(testDb));
   }
 
   // ======================= Table ======================
@@ -455,7 +455,7 @@ public class GlueMetastoreClientDelegateTest {
 
     verify(glueClient, times(1)).createTable(any(CreateTableRequest.class));
     verify(wh).isDir(tblPath);
-    verify(wh, never()).mkdirs(tblPath, true);
+    verify(wh, never()).mkdirs(tblPath);
   }
 
   @Test
@@ -474,7 +474,7 @@ public class GlueMetastoreClientDelegateTest {
     ArgumentCaptor<CreateTableRequest> captor = ArgumentCaptor.forClass(CreateTableRequest.class);
     verify(glueClient, times(1)).createTable(captor.capture());
     verify(wh).isDir(tblPath);
-    verify(wh, never()).mkdirs(tblPath, true);
+    verify(wh, never()).mkdirs(tblPath);
     assertEquals(CATALOG_ID, captor.getValue().getCatalogId());
   }
   
@@ -493,7 +493,7 @@ public class GlueMetastoreClientDelegateTest {
 
     verify(glueClient, times(1)).createTable(any(CreateTableRequest.class));
     verify(wh).isDir(tblPath);
-    verify(wh).mkdirs(tblPath, true);
+    verify(wh).mkdirs(tblPath);
   }
 
   @Test (expected = org.apache.hadoop.hive.metastore.api.AlreadyExistsException.class)
@@ -590,7 +590,7 @@ public class GlueMetastoreClientDelegateTest {
     metastoreClientDelegate.dropTable(testTbl.getDatabaseName(), testTbl.getName(), true, true, true);
 
     verify(glueClient).deleteTable(new DeleteTableRequest().withDatabaseName(testTbl.getDatabaseName()).withName(testTbl.getName()));
-    verify(wh).deleteDir(tbl_path, true, true);
+    verify(wh).deleteDir(tbl_path, true, true, CatalogToHiveConverter.convertDatabase(testDb));
   }
 
   @Test
@@ -617,7 +617,7 @@ public class GlueMetastoreClientDelegateTest {
     metastoreClientDelegate.dropTable(testTbl.getDatabaseName(), testTbl.getName(), false, true, true);
 
     verify(glueClient).deleteTable(new DeleteTableRequest().withDatabaseName(testTbl.getDatabaseName()).withName(testTbl.getName()));
-    verify(wh, never()).deleteDir(tblPath, true, true);
+    verify(wh, never()).deleteDir(tblPath, true, true, CatalogToHiveConverter.convertDatabase(testDb));
   }
 
   @Test
@@ -645,7 +645,7 @@ public class GlueMetastoreClientDelegateTest {
     metastoreClientDelegate.dropTable(testTbl.getDatabaseName(), testTbl.getName(), false, true, true);
 
     verify(glueClient).deleteTable(new DeleteTableRequest().withDatabaseName(testTbl.getDatabaseName()).withName(testTbl.getName()));
-    verify(wh, never()).deleteDir(tblPath, true, true);
+    verify(wh, never()).deleteDir(tblPath, true, true, CatalogToHiveConverter.convertDatabase(testDb));
   }
 
   @Test
@@ -662,7 +662,7 @@ public class GlueMetastoreClientDelegateTest {
 
     assertFalse(metastoreClientDelegate.validateNewTableAndCreateDirectory(hiveTbl));
     assertNull(testTbl.getStorageDescriptor().getLocation());
-    verify(wh, never()).mkdirs(any(Path.class), anyBoolean());
+    verify(wh, never()).mkdirs(any(Path.class));
   }
 
   // ======================= Partition =======================
@@ -976,7 +976,7 @@ public class GlueMetastoreClientDelegateTest {
     org.apache.hadoop.hive.metastore.api.Partition res =
       metastoreClientDelegate.appendPartition(testDb.getName(), testTbl.getName(), values);
 
-    verify(wh, times(1)).mkdirs(partLocation, true);
+    verify(wh, times(1)).mkdirs(partLocation);
     assertThat(res.getValues(), is(values));
   }
 
@@ -1006,8 +1006,8 @@ public class GlueMetastoreClientDelegateTest {
 
     verify(glueClient, times(1)).getTable(any(GetTableRequest.class));
     verify(glueClient, times(1)).batchCreatePartition(any(BatchCreatePartitionRequest.class));
-    verify(wh, times(numPartitions)).mkdirs(any(Path.class), eq(true));
-    verify(wh, never()).deleteDir(any(Path.class), eq(true));
+    verify(wh, times(numPartitions)).mkdirs(any(Path.class));
+    verify(wh, never()).deleteDir(any(Path.class), eq(true), CatalogToHiveConverter.convertDatabase(testDb));
     assertEquals(numPartitions, partitionsCreated.size());
     assertThat(partitionsCreated, containsInAnyOrder(partitions.toArray()));
     assertDaemonThreadPools();
@@ -1019,7 +1019,7 @@ public class GlueMetastoreClientDelegateTest {
     // Test that created partitions contains location
     int numPartitions = 2;
     List<org.apache.hadoop.hive.metastore.api.Partition> partitionsCreated = addPartitionsWithEmptyLocationsValid(numPartitions);
-    verify(wh, times(numPartitions)).mkdirs(any(Path.class), eq(true));
+    verify(wh, times(numPartitions)).mkdirs(any(Path.class));
     for (org.apache.hadoop.hive.metastore.api.Partition part : partitionsCreated) {
       assertThat(part.getSd().getLocation(), notNullValue());
     }
@@ -1033,7 +1033,7 @@ public class GlueMetastoreClientDelegateTest {
     testTbl.getStorageDescriptor().setLocation(null);
     int numPartitions = 1;
     List<org.apache.hadoop.hive.metastore.api.Partition> partitionsCreated = addPartitionsWithEmptyLocationsValid(numPartitions);
-    verify(wh, never()).mkdirs(any(Path.class), anyBoolean());
+    verify(wh, never()).mkdirs(any(Path.class));
     assertThat(partitionsCreated.get(0).getSd().getLocation(), nullValue());
     assertDaemonThreadPools();
   }
@@ -1046,13 +1046,13 @@ public class GlueMetastoreClientDelegateTest {
     mockBatchCreatePartitionsSucceed();
     when(glueClient.getTable(any(GetTableRequest.class)))
       .thenReturn(new GetTableResult().withTable(testTbl));
-    when(wh.mkdirs(any(Path.class), anyBoolean())).thenReturn(true);
+    when(wh.mkdirs(any(Path.class))).thenReturn(true);
 
     List<org.apache.hadoop.hive.metastore.api.Partition> partitionsCreated =
       metastoreClientDelegate.addPartitions(partitions, false, true);
     verify(glueClient, times(1)).getTable(any(GetTableRequest.class));
     verify(glueClient, times(1)).batchCreatePartition(any(BatchCreatePartitionRequest.class));
-    verify(wh, never()).deleteDir(any(Path.class), anyBoolean());
+    verify(wh, never()).deleteDir(any(Path.class), anyBoolean(), CatalogToHiveConverter.convertDatabase(testDb) );
     assertEquals(numPartitions, partitionsCreated.size());
     assertThat(partitionsCreated, containsInAnyOrder(partitions.toArray()));
     return partitionsCreated;
@@ -1071,7 +1071,7 @@ public class GlueMetastoreClientDelegateTest {
     mockBatchCreatePartitionsSucceed();
     when(glueClient.getTable(any(GetTableRequest.class)))
       .thenReturn(new GetTableResult().withTable(table));
-    when(wh.mkdirs(any(Path.class), anyBoolean())).thenReturn(true);
+    when(wh.mkdirs(any(Path.class))).thenReturn(true);
 
     metastoreClientDelegate.addPartitions(partitions, false, true);
 
@@ -1091,8 +1091,8 @@ public class GlueMetastoreClientDelegateTest {
 
     verify(glueClient, times(1)).getTable(any(GetTableRequest.class));
     verify(glueClient, times(1)).batchCreatePartition(any(BatchCreatePartitionRequest.class));
-    verify(wh, times(numPartitions)).mkdirs(any(Path.class), eq(true));
-    verify(wh, never()).deleteDir(any(Path.class), eq(true));
+    verify(wh, times(numPartitions)).mkdirs(any(Path.class));
+    verify(wh, never()).deleteDir(any(Path.class), eq(true),CatalogToHiveConverter.convertDatabase(testDb));
     assertThat(partitionsCreated, is(nullValue()));
     assertDaemonThreadPools();
   }
@@ -1111,8 +1111,8 @@ public class GlueMetastoreClientDelegateTest {
 
     verify(glueClient, times(1)).getTable(any(GetTableRequest.class));
     verify(glueClient, times(expectedBatches)).batchCreatePartition(any(BatchCreatePartitionRequest.class));
-    verify(wh, times(numPartitions)).mkdirs(any(Path.class), eq(true));
-    verify(wh, never()).deleteDir(any(Path.class), eq(true));
+    verify(wh, times(numPartitions)).mkdirs(any(Path.class));
+    verify(wh, never()).deleteDir(any(Path.class), eq(true), CatalogToHiveConverter.convertDatabase(testDb));
     assertEquals(numPartitions, partitionsCreated.size());
     assertThat(partitionsCreated, containsInAnyOrder(partitions.toArray()));
     assertDaemonThreadPools();
@@ -1133,8 +1133,8 @@ public class GlueMetastoreClientDelegateTest {
     verify(glueClient, times(1)).getTable(any(GetTableRequest.class));
     verify(glueClient, times(expectedBatches)).batchCreatePartition(captor.capture());
     assertEquals(CATALOG_ID, captor.getValue().getCatalogId());
-    verify(wh, times(numPartitions)).mkdirs(any(Path.class), eq(true));
-    verify(wh, never()).deleteDir(any(Path.class), eq(true));
+    verify(wh, times(numPartitions)).mkdirs(any(Path.class));
+    verify(wh, never()).deleteDir(any(Path.class), eq(true), CatalogToHiveConverter.convertDatabase(testDb));
     assertEquals(numPartitions, partitionsCreated.size());
     assertThat(partitionsCreated, containsInAnyOrder(partitions.toArray()));
     assertDaemonThreadPools();
@@ -1158,8 +1158,8 @@ public class GlueMetastoreClientDelegateTest {
       assertThat(e, is(instanceOf(MetaException.class)));
       verify(glueClient, times(1)).getTable(any(GetTableRequest.class));
       verify(glueClient, times(1)).batchCreatePartition(any(BatchCreatePartitionRequest.class));
-      verify(wh, times(numPartitions)).mkdirs(any(Path.class), eq(true));
-      verify(wh, times(1)).deleteDir(any(Path.class), eq(true));
+      verify(wh, times(numPartitions)).mkdirs(any(Path.class));
+      verify(wh, times(1)).deleteDir(any(Path.class), eq(true), CatalogToHiveConverter.convertDatabase(testDb));
       assertDaemonThreadPools();
     }
   }
@@ -1183,8 +1183,8 @@ public class GlueMetastoreClientDelegateTest {
       assertThat(e, is(instanceOf(org.apache.hadoop.hive.metastore.api.AlreadyExistsException.class)));
       verify(glueClient, times(1)).getTable(any(GetTableRequest.class));
       verify(glueClient, times(1)).batchCreatePartition(any(BatchCreatePartitionRequest.class));
-      verify(wh, times(numPartitions)).mkdirs(any(Path.class), eq(true));
-      verify(wh, times(1)).deleteDir(any(Path.class), eq(true));
+      verify(wh, times(numPartitions)).mkdirs(any(Path.class));
+      verify(wh, times(1)).deleteDir(any(Path.class), eq(true), CatalogToHiveConverter.convertDatabase(testDb));
       assertDaemonThreadPools();
     }
   }
@@ -1206,8 +1206,8 @@ public class GlueMetastoreClientDelegateTest {
       assertThat(e, is(instanceOf(NoSuchObjectException.class)));
       verify(glueClient, times(1)).getTable(any(GetTableRequest.class));
       verify(glueClient, times(1)).batchCreatePartition(any(BatchCreatePartitionRequest.class));
-      verify(wh, times(numPartitions)).mkdirs(any(Path.class), eq(true));
-      verify(wh, times(numPartitions)).deleteDir(any(Path.class), eq(true));
+      verify(wh, times(numPartitions)).mkdirs(any(Path.class));
+      verify(wh, times(numPartitions)).deleteDir(any(Path.class), eq(true), CatalogToHiveConverter.convertDatabase(testDb));
       assertDaemonThreadPools();
     }
   }
@@ -1231,8 +1231,8 @@ public class GlueMetastoreClientDelegateTest {
       assertThat(e, is(instanceOf(InvalidObjectException.class)));
       verify(glueClient, times(1)).getTable(any(GetTableRequest.class));
       verify(glueClient, times(2)).batchCreatePartition(any(BatchCreatePartitionRequest.class));
-      verify(wh, times(numPartitions)).mkdirs(any(Path.class), eq(true));
-      verify(wh, times(secondPageSize)).deleteDir(any(Path.class), eq(true));
+      verify(wh, times(numPartitions)).mkdirs(any(Path.class));
+      verify(wh, times(secondPageSize)).deleteDir(any(Path.class), eq(true), CatalogToHiveConverter.convertDatabase(testDb));
       assertDaemonThreadPools();
     }
   }
@@ -1253,8 +1253,8 @@ public class GlueMetastoreClientDelegateTest {
 
     verify(glueClient, times(1)).getTable(any(GetTableRequest.class));
     verify(glueClient, times(1)).batchCreatePartition(any(BatchCreatePartitionRequest.class));
-    verify(wh, times(numPartitions)).mkdirs(any(Path.class), eq(true));
-    verify(wh, never()).deleteDir(any(Path.class), eq(true));
+    verify(wh, times(numPartitions)).mkdirs(any(Path.class));
+    verify(wh, never()).deleteDir(any(Path.class), eq(true), CatalogToHiveConverter.convertDatabase(testDb));
     assertEquals(1, partitionsCreated.size());
     assertThat(partitionsCreated.get(0), isIn(partitions));
     assertDaemonThreadPools();
@@ -1286,7 +1286,7 @@ public class GlueMetastoreClientDelegateTest {
     when(glueClient.getTable(any(GetTableRequest.class)))
       .thenReturn(new GetTableResult().withTable(testTbl));
     when(wh.isDir(any(Path.class))).thenReturn(false);
-    when(wh.mkdirs(any(Path.class), eq(true))).thenReturn(true).thenReturn(false); // succeed first, then fail
+    when(wh.mkdirs(any(Path.class))).thenReturn(true).thenReturn(false); // succeed first, then fail
 
     try {
       metastoreClientDelegate.addPartitions(partitions, true, true);
@@ -1294,8 +1294,8 @@ public class GlueMetastoreClientDelegateTest {
     } catch (MetaException e) {
       verify(wh, times(numPartitions)).getDnsPath(any(Path.class));
       verify(wh, times(numPartitions)).isDir(any(Path.class));
-      verify(wh, times(numPartitions)).mkdirs(any(Path.class), eq(true));
-      verify(wh, times(1)).deleteDir(any(Path.class), eq(true));
+      verify(wh, times(numPartitions)).mkdirs(any(Path.class));
+      verify(wh, times(1)).deleteDir(any(Path.class), eq(true), CatalogToHiveConverter.convertDatabase(testDb));
       assertDaemonThreadPools();
     }
   }
@@ -1341,8 +1341,8 @@ public class GlueMetastoreClientDelegateTest {
       verify(glueClient, times(1)).getTable(any(GetTableRequest.class));
       verify(glueClient, times(1)).batchCreatePartition(any(BatchCreatePartitionRequest.class));
       verify(glueClient, times(numPartitions)).getPartition(any(GetPartitionRequest.class));
-      verify(wh, times(numPartitions)).mkdirs(any(Path.class), eq(true));
-      verify(wh, times(2)).deleteDir(any(Path.class), eq(true));
+      verify(wh, times(numPartitions)).mkdirs(any(Path.class));
+      verify(wh, times(2)).deleteDir(any(Path.class), eq(true), CatalogToHiveConverter.convertDatabase(testDb));
       assertDaemonThreadPools();
     }
   }

@@ -752,7 +752,7 @@ public abstract class AWSCatalogMetastoreClient implements CloseableThriftHiveMe
     List<DropPartitionsExpr> exprs = parts.getExprs();
     List<ObjectPair<Integer, byte[]>> partExprs = exprs.stream().map(
             dropPartitionsExpr ->
-                    new ObjectPair(Integer.valueOf(dropPartitionsExpr.getPartArchiveLevel()), dropPartitionsExpr.getExpr())).collect(Collectors.toList());
+                    new ObjectPair<Integer, byte[]>(Integer.valueOf(dropPartitionsExpr.getPartArchiveLevel()), dropPartitionsExpr.getExpr())).collect(Collectors.toList());
     boolean deleteData = dropPartitionsRequest.isDeleteData();
 
     List<org.apache.hadoop.hive.metastore.api.Partition> partitions = dropPartitions_core(dbName, tblName, partExprs, deleteData, false);
