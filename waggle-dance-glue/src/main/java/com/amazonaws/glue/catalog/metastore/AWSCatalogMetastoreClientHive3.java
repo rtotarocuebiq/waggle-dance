@@ -151,7 +151,7 @@ public class AWSCatalogMetastoreClientHive3 extends AWSCatalogMetastoreClient
     @Override
     public boolean isOpen()
     {
-        return false;
+        return true;
     }
 
     @Override

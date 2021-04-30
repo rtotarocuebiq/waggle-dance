@@ -528,11 +528,13 @@ public class GlueMetastoreClientDelegate {
   }
 
   public List<String> getTables(String dbname, String tablePattern, TableType tableType) throws TException {
-    throw new UnsupportedOperationException("getTables with TableType is not supported");
+    logger.warn("getTables with TableType is not supported: tabelType "+ tableType.name() + " ignored");
+    return getTables(dbname,tablePattern);
   }
 
   public List<String> listTableNamesByFilter(String dbName, String filter, short maxTables) throws TException {
-    throw new UnsupportedOperationException("listTableNamesByFilter is not supported");
+    logger.warn("listTableNamesByFilter is not supported: filter "+ filter + " ignored");
+    return getTables(dbName,"*");
   }
 
   /**

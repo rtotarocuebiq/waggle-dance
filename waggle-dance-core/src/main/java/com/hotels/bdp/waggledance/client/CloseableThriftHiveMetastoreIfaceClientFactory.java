@@ -23,7 +23,10 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import com.amazonaws.glue.catalog.metastore.AWSCatalogMetastoreClientHive3;
+import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.conf.HiveConf.ConfVars;
+import org.apache.hadoop.hive.metastore.HiveMetaHookLoader;
 import org.apache.hadoop.hive.metastore.api.MetaException;
 
 import com.amazonaws.glue.catalog.metastore.AWSCatalogMetastoreClient;
@@ -82,8 +85,9 @@ public class CloseableThriftHiveMetastoreIfaceClientFactory {
     }
 
     else if (metaStore.getMetastoreType().equals(METASTORE_TYPE_GLUE)) {
-      //TODO: configure glue
-      return new AWSCatalogMetastoreClient.Builder().build();
+      HiveConf conf = new HiveConf();
+      conf.set("aws.region","eu-west-1");
+      return  new AWSCatalogMetastoreClientHive3(conf,null);
     }
     throw new RuntimeException("Unsupported metastore type:"+ metaStore.getMetastoreType());
   }

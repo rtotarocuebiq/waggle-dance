@@ -30,7 +30,7 @@ import org.apache.hadoop.hive.ql.plan.ExprNodeGenericFuncDesc;
 final class AwsGlueHive2Shims
         implements AwsGlueHiveShims {
 
-  private static final String HIVE_2_VERSION = "2.";
+  private static final String HIVE_2_VERSION = "3.";
 
   static boolean supportsVersion(String version) {
     return version.startsWith(HIVE_2_VERSION);
