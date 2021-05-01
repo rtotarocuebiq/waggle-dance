@@ -43,7 +43,6 @@ import org.apache.hadoop.hive.metastore.api.PrivilegeBag;
 import org.apache.hadoop.hive.metastore.api.Role;
 import org.apache.hadoop.hive.metastore.api.StringColumnStatsData;
 
-import com.amazonaws.glue.catalog.converters.CatalogToHiveConverter;
 import com.amazonaws.glue.catalog.converters.HiveToCatalogConverter;
 import com.amazonaws.services.glue.model.Column;
 import com.amazonaws.services.glue.model.Database;

@@ -148,7 +148,7 @@
     </dependency>
     <dependency>
       <groupId>org.apache.hive</groupId>
-      <artifactId>hive-exec</artifactId>
+      <artifactId>hive-standalone-metastore</artifactId>
       <exclusions>
         <exclusion>
           <groupId>log4j</groupId>

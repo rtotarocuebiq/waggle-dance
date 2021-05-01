@@ -23,13 +23,9 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import com.amazonaws.glue.catalog.metastore.AWSCatalogMetastoreClientHive3;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.conf.HiveConf.ConfVars;
-import org.apache.hadoop.hive.metastore.HiveMetaHookLoader;
 import org.apache.hadoop.hive.metastore.api.MetaException;
-
-import com.amazonaws.glue.catalog.metastore.AWSCatalogMetastoreClient;
 
 import com.hotels.bdp.waggledance.api.model.AbstractMetaStore;
 import com.hotels.bdp.waggledance.client.tunnelling.TunnelingMetaStoreClientFactory;
