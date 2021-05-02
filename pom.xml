@@ -148,7 +148,7 @@
       </dependency>
       <dependency>
         <groupId>org.apache.hive</groupId>
-        <artifactId>hive-standalone-metastore</artifactId>
+        <artifactId>hive-exec</artifactId>
         <version>${hive.version}</version>
         <scope>compile</scope>
       </dependency>
