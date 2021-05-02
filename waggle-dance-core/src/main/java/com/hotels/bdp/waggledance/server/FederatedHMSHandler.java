@@ -529,9 +529,10 @@ public abstract class FederatedHMSHandler extends FacebookBase implements Closea
   @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
   public AddPartitionsResult add_partitions_req(AddPartitionsRequest request)
       throws InvalidObjectException, AlreadyExistsException, MetaException, TException {
-    DatabaseMapping mapping = checkWritePermissionsAndCheckTableAllowed(request.getDbName(), request.getTblName());
+    String internalName = getDbInternalName(request.getDbName());
+    DatabaseMapping mapping = checkWritePermissionsAndCheckTableAllowed(internalName, request.getTblName());
     for (Partition partition : request.getParts()) {
-      checkWritePermissionsAndCheckTableAllowed(partition.getDbName(), partition.getTableName(), mapping);
+      checkWritePermissionsAndCheckTableAllowed(internalName, partition.getTableName(), mapping);
     }
     AddPartitionsResult result = mapping
         .getClient()
