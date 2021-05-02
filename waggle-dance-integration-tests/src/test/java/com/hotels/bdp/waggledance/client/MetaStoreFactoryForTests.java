@@ -15,15 +15,19 @@
  */
 package com.hotels.bdp.waggledance.client;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.hotels.bdp.waggledance.WaggleDanceRemoteService;
+import com.hotels.bdp.waggledance.WaggleDanceRunner;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hive.metastore.MetaStoreTestUtils;
 import org.apache.hadoop.hive.metastore.conf.MetastoreConf;
 import org.apache.hadoop.hive.metastore.minihms.AbstractMetaStoreService;
 import org.apache.hadoop.hive.metastore.minihms.MiniHMS;
+import org.junit.rules.TemporaryFolder;
 
 /**
  * Factory for creating specific
@@ -90,7 +94,7 @@ public final class MetaStoreFactoryForTests {
             .setConf(conf)
             .setType(MiniHMS.MiniHMSType.EMBEDDED)
             .build();
-    metaStores.add(new Object[] {"Embedded", embedded});
+//    metaStores.add(new Object[] {"Embedded", embedded});
 
     // Create Remote MetaStore
     conf.set("javax.jdo.option.ConnectionURL",
@@ -101,7 +105,20 @@ public final class MetaStoreFactoryForTests {
             .setConf(conf)
             .setType(MiniHMS.MiniHMSType.REMOTE)
             .build();
-    metaStores.add(new Object[] {"Remote", remote});
+//    metaStores.add(new Object[] {"Remote", remote});
+
+
+    // Create Remote MetaStore
+    conf.set("javax.jdo.option.ConnectionURL",
+            "jdbc:derby:memory:${test.tmp.dir}/junit_metastore_db3;create=true");
+    MetastoreConf.setBoolVar(conf, MetastoreConf.ConfVars.TRY_DIRECT_SQL, true);
+    AbstractMetaStoreService wd = new WaggleDanceRemoteService(conf);
+    metaStores.add(new Object[] {"WaggleDancePrimary", wd});
+
+
+
+
+
 
     return metaStores;
   }
