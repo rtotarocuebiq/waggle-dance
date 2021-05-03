@@ -293,7 +293,8 @@ public class StaticDatabaseMappingService implements MappingEventListener {
 
   @Override
   public DatabaseMapping databaseMapping(@NotNull String databaseName) throws NoSuchObjectException {
-    DatabaseMapping databaseMapping = mappingsByDatabaseName.get(FederatedHMSHandler.getDbInternalName(databaseName.toLowerCase(Locale.ROOT)));
+    String dbInternalName = FederatedHMSHandler.getDbInternalName(databaseName.toLowerCase(Locale.ROOT));
+    DatabaseMapping databaseMapping = mappingsByDatabaseName.get(dbInternalName);
     if (databaseMapping != null) {
       LOG
           .debug("Database Name `{}` maps to metastore with name '{}'", databaseName,
@@ -361,7 +362,7 @@ public class StaticDatabaseMappingService implements MappingEventListener {
 
       @Override
       public List<TableMeta> getTableMeta(String db_patterns, String tbl_patterns, List<String> tbl_types) {
-        String internal_pattern = FederatedHMSHandler.getDbInternalName(db_patterns);
+        String internal_pattern = FederatedHMSHandler.getDbPatternInternalName(db_patterns);
 
         BiFunction<TableMeta, DatabaseMapping, Boolean> filter = (tableMeta, mapping) ->
             databaseAndTableAllowed(tableMeta.getDbName(), tableMeta.getTableName(), mapping);
@@ -375,7 +376,7 @@ public class StaticDatabaseMappingService implements MappingEventListener {
 
       @Override
       public List<String> getAllDatabases(String pattern) {
-        String internal_pattern = FederatedHMSHandler.getDbInternalName(pattern);
+        String internal_pattern = FederatedHMSHandler.getDbPatternInternalName(pattern);
         BiFunction<String, DatabaseMapping, Boolean> filter = (database, mapping) -> isDbAllowed(database);
 
         Map<DatabaseMapping, String> mappingsForPattern = new LinkedHashMap<>();

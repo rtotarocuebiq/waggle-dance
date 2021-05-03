@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import com.hotels.bdp.waggledance.mapping.NoSuchDatabaseException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.metastore.api.AbortTxnRequest;
 import org.apache.hadoop.hive.metastore.api.AbortTxnsRequest;
@@ -337,8 +338,16 @@ public abstract class FederatedHMSHandler extends FacebookBase implements Closea
   @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
   public void create_table_with_environment_context(Table tbl, EnvironmentContext environment_context)
       throws AlreadyExistsException, InvalidObjectException, MetaException, NoSuchObjectException, TException {
+    if(tbl.getDbName() == null){
+      throw new InvalidObjectException("Database cannot be null on table");
+    }
     String internalName = getDbInternalName(tbl.getDbName());
-    DatabaseMapping mapping = checkWritePermissions(internalName);
+    DatabaseMapping mapping;
+    try {
+      mapping = checkWritePermissions(internalName);
+    }catch (NoSuchObjectException e) {
+      throw new InvalidObjectException(e.getMessage());
+    }
     mapping.getClient().create_table_with_environment_context(mapping.transformInboundTable(tbl), environment_context);
   }
 
@@ -449,16 +458,34 @@ public abstract class FederatedHMSHandler extends FacebookBase implements Closea
       String tbl_name,
       Table new_tbl,
       EnvironmentContext environment_context)
-      throws InvalidOperationException, MetaException, TException {
+      throws InvalidOperationException, MetaException, TException
+  {
+    if (dbname == null) {
+      throw new MetaException("Database cannot be null");
+    }
     String internalName = getDbInternalName(dbname);
-    DatabaseMapping mapping = checkWritePermissionsAndCheckTableAllowed(internalName, tbl_name);
-    String newDbName = new_tbl.getDbName();
-    String newInternalName = getDbInternalName(newDbName);
-    checkWritePermissionsAndCheckTableAllowed(newInternalName, new_tbl.getTableName(), mapping);
-    mapping
-        .getClient()
-        .alter_table_with_environment_context(mapping.transformInboundDatabaseName(dbname), tbl_name,
-            mapping.transformInboundTable(new_tbl), environment_context);
+    if (internalName == null) {
+      throw new MetaException("Database cannot be null");
+    }
+
+    try {
+      DatabaseMapping mapping = checkWritePermissionsAndCheckTableAllowed(internalName, tbl_name);
+      String newDbName = new_tbl.getDbName();
+      if (newDbName == null) {
+        throw new MetaException("New Database cannot be null");
+      }
+      String newInternalName = getDbInternalName(newDbName);
+      if (newInternalName == null) {
+        throw new MetaException("New Database cannot be null");
+      }
+      checkWritePermissionsAndCheckTableAllowed(newInternalName, new_tbl.getTableName(), mapping);
+      mapping
+              .getClient()
+              .alter_table_with_environment_context(mapping.transformInboundDatabaseName(dbname), tbl_name,
+                      mapping.transformInboundTable(new_tbl), environment_context);
+    } catch (NoSuchObjectException e) {
+      throw new InvalidOperationException(e.getMessage());
+    }
   }
 
   @Override
@@ -1707,11 +1734,21 @@ public abstract class FederatedHMSHandler extends FacebookBase implements Closea
     return mapping.transformOutboundGetTableResult(result);
   }
 
-  public static String getDbInternalName(String dbName)
+  public static String getDbPatternInternalName(String dbName)
   {
     try {
       String internalName = parseDbName(dbName, null)[DB_NAME];
       return internalName!=null ? internalName : "*";
+    }
+    catch (MetaException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  public static String getDbInternalName(String dbName)
+  {
+    try {
+      return parseDbName(dbName, null)[DB_NAME];
     }
     catch (MetaException e) {
       throw new RuntimeException(e);

@@ -317,7 +317,7 @@ public class PrefixBasedDatabaseMappingService implements MappingEventListener {
 
       @Override
       public List<TableMeta> getTableMeta(String db_patterns, String tbl_patterns, List<String> tbl_types) {
-        String internal_pattern = FederatedHMSHandler.getDbInternalName(db_patterns);
+        String internal_pattern = FederatedHMSHandler.getDbPatternInternalName(db_patterns);
         Map<DatabaseMapping, String> databaseMappingsForPattern = databaseMappingsByDbPattern(internal_pattern);
 
         BiFunction<TableMeta, DatabaseMapping, Boolean> filter = (tableMeta, mapping) -> databaseAndTableAllowed(
@@ -328,7 +328,7 @@ public class PrefixBasedDatabaseMappingService implements MappingEventListener {
 
       @Override
       public List<String> getAllDatabases(String databasePattern) {
-        String internal_pattern = FederatedHMSHandler.getDbInternalName(databasePattern);
+        String internal_pattern = FederatedHMSHandler.getDbPatternInternalName(databasePattern);
         Map<DatabaseMapping, String> databaseMappingsForPattern = databaseMappingsByDbPattern(internal_pattern);
 
         BiFunction<String, DatabaseMapping, Boolean> filter = (database, mapping) -> isDbAllowed(
