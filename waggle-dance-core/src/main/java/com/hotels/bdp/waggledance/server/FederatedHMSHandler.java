@@ -398,20 +398,35 @@ public abstract class FederatedHMSHandler extends FacebookBase implements Closea
   @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
   public List<String> get_tables(String db_name, String pattern) throws MetaException, TException {
     String internalName = getDbInternalName(db_name);
-    DatabaseMapping mapping = databaseMappingService.databaseMapping(internalName);
-    List<String> resultTables = mapping.getClient().get_tables(mapping.transformInboundDatabaseName(db_name), pattern);
-    resultTables = databaseMappingService.filterTables(internalName, resultTables, mapping);
-    return mapping.getMetastoreFilter().filterTableNames(mapping.getCatalog(),internalName, resultTables);
+    try {
+      DatabaseMapping mapping = databaseMappingService.databaseMapping(internalName);
+      List<String> resultTables = mapping.getClient().get_tables(mapping.transformInboundDatabaseName(db_name), pattern);
+      resultTables = databaseMappingService.filterTables(internalName, resultTables, mapping);
+      return mapping.getMetastoreFilter().filterTableNames(mapping.getCatalog(),internalName, resultTables);
+    }catch (NoSuchObjectException e) {
+      LOG.debug("hidden exception",e);
+      return new ArrayList<>();
+    }
+
   }
 
   @Override
   @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
   public List<String> get_all_tables(String db_name) throws MetaException, TException {
+    assertDbNotNull(db_name);
     String internal_name = getDbInternalName(db_name);
-    DatabaseMapping mapping = databaseMappingService.databaseMapping(internal_name);
-    List<String> resultTables =  mapping.getClient().get_all_tables(mapping.transformInboundDatabaseName(db_name));
-    resultTables = databaseMappingService.filterTables(internal_name, resultTables, mapping);
-    return mapping.getMetastoreFilter().filterTableNames(mapping.getCatalog(), internal_name, resultTables);
+    assertDbNotNull(internal_name);
+    try {
+      DatabaseMapping mapping = databaseMappingService.databaseMapping(internal_name);
+      List<String> resultTables =  mapping.getClient().get_all_tables(mapping.transformInboundDatabaseName(db_name));
+      resultTables = databaseMappingService.filterTables(internal_name, resultTables, mapping);
+      return mapping.getMetastoreFilter().filterTableNames(mapping.getCatalog(), internal_name, resultTables);
+    }catch (NoSuchObjectException e)
+    {
+      LOG.debug("hidden exception",e);
+      return new ArrayList<>();
+    }
+
   }
 
   @Override
@@ -446,12 +461,24 @@ public abstract class FederatedHMSHandler extends FacebookBase implements Closea
   @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
   public List<String> get_table_names_by_filter(String dbname, String filter, short max_tables)
       throws MetaException, InvalidOperationException, UnknownDBException, TException {
+    assertDbNotNull(dbname);
     String internalName = getDbInternalName(dbname);
-    DatabaseMapping mapping = databaseMappingService.databaseMapping(internalName);
-    List<String> resultTables = mapping.getClient()
-        .get_table_names_by_filter(mapping.transformInboundDatabaseName(dbname), filter, max_tables);
-    List<String> result = databaseMappingService.filterTables(internalName, resultTables, mapping);
-    return mapping.getMetastoreFilter().filterTableNames(mapping.getCatalog(), internalName, result);
+    if(internalName == null)
+    {
+      throw new UnknownDBException("Database cannot be null");
+    }
+    try {
+      DatabaseMapping mapping = databaseMappingService.databaseMapping(internalName);
+      List<String> resultTables = mapping.getClient()
+              .get_table_names_by_filter(mapping.transformInboundDatabaseName(dbname), filter, max_tables);
+      List<String> result = databaseMappingService.filterTables(internalName, resultTables, mapping);
+      return mapping.getMetastoreFilter().filterTableNames(mapping.getCatalog(), internalName, result);
+    }catch (NoSuchObjectException e){
+      LOG.debug("hidden exception",e);
+      return new ArrayList<>();
+    }
+
+
   }
 
   @Override
@@ -478,9 +505,9 @@ public abstract class FederatedHMSHandler extends FacebookBase implements Closea
       EnvironmentContext environment_context)
       throws InvalidOperationException, MetaException, TException
   {
-    assertDbExistsInvalidObject(dbname);
+    assertDbNotNull(dbname);
     String internalName = getDbInternalName(dbname);
-    assertDbExistsInvalidObject(internalName);
+    assertDbExistsInvalidOperation(internalName);
 
     try {
       DatabaseMapping mapping = checkWritePermissionsAndCheckTableAllowed(internalName, tbl_name);
@@ -521,6 +548,18 @@ public abstract class FederatedHMSHandler extends FacebookBase implements Closea
       throw new InvalidOperationException(noSuchObjectException.getMessage());
     }
   }
+  private void assertDbExistsUnkwownDatabase(String dbname)
+          throws MetaException,UnknownDBException
+  {
+    assertDbNotNull(dbname);
+    try {
+      databaseMappingService.databaseMapping(dbname);
+    }
+    catch (NoSuchObjectException noSuchObjectException) {
+      throw new UnknownDBException(noSuchObjectException.getMessage());
+    }
+  }
+
   private void assertDbExistsInvalidObject(String dbname)
           throws MetaException,InvalidObjectException
   {
@@ -769,7 +808,9 @@ public abstract class FederatedHMSHandler extends FacebookBase implements Closea
   @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
   public Partition get_partition(String db_name, String tbl_name, List<String> part_vals)
       throws MetaException, NoSuchObjectException, TException {
+    assertDbNotNull(db_name);
     String internalName = getDbInternalName(db_name);
+    assertDbNotNull(internalName);
     DatabaseMapping mapping = getDbMappingAndCheckTableAllowed(internalName, tbl_name);
     Partition partition = mapping.getClient().get_partition(mapping.transformInboundDatabaseName(db_name), tbl_name, part_vals);
     return mapping
@@ -822,7 +863,9 @@ public abstract class FederatedHMSHandler extends FacebookBase implements Closea
   @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
   public Partition get_partition_by_name(String db_name, String tbl_name, String part_name)
       throws MetaException, NoSuchObjectException, TException {
+    assertDbNotNull(db_name);
     String internalName = getDbInternalName(db_name);
+    assertDbNotNull(internalName);
     DatabaseMapping mapping = getDbMappingAndCheckTableAllowed(internalName, tbl_name);
     Partition partition = mapping
         .getClient()
@@ -851,7 +894,9 @@ public abstract class FederatedHMSHandler extends FacebookBase implements Closea
       String user_name,
       List<String> group_names)
       throws NoSuchObjectException, MetaException, TException {
+    assertDbNotNull(db_name);
     String internalName = getDbInternalName(db_name);
+    assertDbNotNull(internalName);
     DatabaseMapping mapping = getDbMappingAndCheckTableAllowed(internalName, tbl_name);
     List<Partition> partitions = mapping
         .getClient()
@@ -887,7 +932,9 @@ public abstract class FederatedHMSHandler extends FacebookBase implements Closea
   @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME, prepend=true)
   public List<Partition> get_partitions_ps(String db_name, String tbl_name, List<String> part_vals, short max_parts)
       throws MetaException, NoSuchObjectException, TException {
+    assertDbNotNull(db_name);
     String internalName = getDbInternalName(db_name);
+    assertDbNotNull(internalName);
     DatabaseMapping mapping = getDbMappingAndCheckTableAllowed(internalName, tbl_name);
     List<Partition> partitions = mapping
         .getClient()
@@ -942,7 +989,9 @@ public abstract class FederatedHMSHandler extends FacebookBase implements Closea
   @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME, prepend=true)
   public List<PartitionSpec> get_part_specs_by_filter(String db_name, String tbl_name, String filter, int max_parts)
       throws MetaException, NoSuchObjectException, TException {
+    assertDbNotNull(db_name);
     String internalName = getDbInternalName(db_name);
+    assertDbNotNull(internalName);
     DatabaseMapping mapping = getDbMappingAndCheckTableAllowed(internalName, tbl_name);
     List<PartitionSpec> partitionSpecs = mapping
         .getClient()
@@ -1764,7 +1813,9 @@ public abstract class FederatedHMSHandler extends FacebookBase implements Closea
   @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
   public int get_num_partitions_by_filter(String db_name, String tbl_name, String filter)
       throws MetaException, NoSuchObjectException, TException {
+    assertDbNotNull(db_name);
     String internalName = getDbInternalName(db_name);
+    assertDbNotNull(internalName);
     DatabaseMapping mapping = getDbMappingAndCheckTableAllowed(internalName, tbl_name);
     return mapping
         .getClient()
@@ -1881,8 +1932,11 @@ public abstract class FederatedHMSHandler extends FacebookBase implements Closea
   @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
   public GetTablesResult get_table_objects_by_name_req(GetTablesRequest req)
       throws MetaException, InvalidOperationException, UnknownDBException, TException {
-    DatabaseMapping mapping = databaseMappingService.databaseMapping(req.getDbName());
-    List<String> filteredTables = databaseMappingService.filterTables(req.getDbName(), req.getTblNames(), mapping);
+    String dbName = req.getDbName();
+    assertDbNotNull(dbName);
+    assertDbExistsUnkwownDatabase(dbName);
+    DatabaseMapping mapping = databaseMappingService.databaseMapping(dbName);
+    List<String> filteredTables = databaseMappingService.filterTables(dbName, req.getTblNames(), mapping);
     req.setTblNames(filteredTables);
     GetTablesResult result = mapping
         .getClient()
@@ -1904,6 +1958,8 @@ public abstract class FederatedHMSHandler extends FacebookBase implements Closea
   @Override
   @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
   public PartitionValuesResponse get_partition_values(PartitionValuesRequest req) throws MetaException, NoSuchObjectException, TException {
+    assertDbNotNull(req.getDbName());
+    assertDbExistsMetaException(req.getDbName());
     DatabaseMapping mapping = getDbMappingAndCheckTableAllowed(req.getDbName(), req.getTblName());
     return mapping
         .getClient()
