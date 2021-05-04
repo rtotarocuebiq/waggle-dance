@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,6 +47,10 @@ public class DatabaseNameMapping extends MetaStoreMappingDecorator {
 
   @Override
   public String transformOutboundDatabaseName(String databaseName) {
+    if(StringUtils.isEmpty(databaseName))
+    {
+      return databaseName;
+    }
     return transformOutboundDatabaseNameMultiple(databaseName).get(0);
   }
 

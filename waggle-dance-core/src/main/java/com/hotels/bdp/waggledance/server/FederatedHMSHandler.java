@@ -256,7 +256,9 @@ public abstract class FederatedHMSHandler extends FacebookBase implements Closea
   @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
   public Database get_database(String name) throws NoSuchObjectException, MetaException, TException {
     LOG.info("Fetching database {}", name);
+    assertDbNotNull(name);
     String internal_name = getDbInternalName(name);
+    assertDbNotNull(internal_name);
     DatabaseMapping mapping = databaseMappingService.databaseMapping(internal_name);
     LOG.info("Mapping is '{}'", mapping.getDatabasePrefix());
     Database result = mapping.getClient().get_database(mapping.transformInboundDatabaseName(name));
@@ -267,7 +269,9 @@ public abstract class FederatedHMSHandler extends FacebookBase implements Closea
   @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
   public void drop_database(String name, boolean deleteData, boolean cascade)
       throws NoSuchObjectException, InvalidOperationException, MetaException, TException {
+    assertDbNotNull(name);
     String internalName = getDbInternalName(name);
+    assertDbExistsInvalidObject(internalName);
     DatabaseMapping mapping = checkWritePermissions(internalName);
     mapping.getClient().drop_database(mapping.transformInboundDatabaseName(name), deleteData, cascade);
   }
@@ -494,6 +498,17 @@ public abstract class FederatedHMSHandler extends FacebookBase implements Closea
     }
   }
 
+  private void assertDbExistsMetaException(String dbname)
+          throws MetaException
+  {
+    assertDbNotNull(dbname);
+    try {
+      databaseMappingService.databaseMapping(dbname);
+    }
+    catch (NoSuchObjectException noSuchObjectException) {
+      throw new MetaException(noSuchObjectException.getMessage());
+    }
+  }
 
   private void assertDbExistsInvalidOperation(String dbname)
           throws MetaException,InvalidOperationException
@@ -700,7 +715,9 @@ public abstract class FederatedHMSHandler extends FacebookBase implements Closea
       boolean deleteData,
       EnvironmentContext environment_context)
       throws NoSuchObjectException, MetaException, TException {
+    assertDbNotNull(db_name);
     String internalName = getDbInternalName(db_name);
+    assertDbNotNull(internalName);
     DatabaseMapping mapping = checkWritePermissionsAndCheckTableAllowed(internalName, tbl_name);
     return mapping
         .getClient()
@@ -768,8 +785,12 @@ public abstract class FederatedHMSHandler extends FacebookBase implements Closea
       String dest_db,
       String dest_table_name)
       throws MetaException, NoSuchObjectException, InvalidObjectException, InvalidInputException, TException {
+    assertDbNotNull(source_db);
     String sourceInternalName = getDbInternalName(source_db);
+    assertDbExistsMetaException(sourceInternalName);
+    assertDbNotNull(dest_db);
     String destInternalName = getDbInternalName(dest_db);
+    assertDbExistsMetaException(destInternalName);
     DatabaseMapping mapping = checkWritePermissionsAndCheckTableAllowed(sourceInternalName, source_table_name);
     checkWritePermissionsAndCheckTableAllowed(destInternalName, dest_table_name, mapping);
     Partition result = mapping
@@ -1183,7 +1204,12 @@ public abstract class FederatedHMSHandler extends FacebookBase implements Closea
   @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
   public void create_function(Function func)
       throws AlreadyExistsException, InvalidObjectException, MetaException, NoSuchObjectException, TException {
-    DatabaseMapping mapping = checkWritePermissions(func.getDbName());
+    String dbName = func.getDbName();
+    if(dbName == null)
+    {
+      throw new NoSuchObjectException("Database name is null");
+    }
+    DatabaseMapping mapping = checkWritePermissions(dbName);
     mapping.getClient().create_function(mapping.transformInboundFunction(func));
   }
 
@@ -1199,27 +1225,45 @@ public abstract class FederatedHMSHandler extends FacebookBase implements Closea
   @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
   public void alter_function(String dbName, String funcName, Function newFunc)
       throws InvalidOperationException, MetaException, TException {
+    assertDbNotNull(dbName);
     String internalName = getDbInternalName(dbName);
-    DatabaseMapping mapping = checkWritePermissions(internalName);
-    mapping.checkWritePermissions(getDbInternalName(newFunc.getDbName()));
-    mapping
-        .getClient()
-        .alter_function(mapping.transformInboundDatabaseName(dbName), funcName,
-            mapping.transformInboundFunction(newFunc));
+    try {
+      //if null throw a NullPointerException as required by hive integration tests
+      internalName.isEmpty();
+
+      assertDbExistsMetaException(internalName);
+      DatabaseMapping mapping = checkWritePermissions(internalName);
+      mapping.checkWritePermissions(getDbInternalName(newFunc.getDbName()));
+      mapping
+              .getClient()
+              .alter_function(mapping.transformInboundDatabaseName(dbName), funcName,
+                      mapping.transformInboundFunction(newFunc));
+    }catch (NoSuchObjectException e)
+    {
+      LOG.debug("hidden exception", e);
+    }
   }
 
   @Override
   @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
   public List<String> get_functions(String dbName, String pattern) throws MetaException, TException {
+    assertDbNotNull(dbName);
     String internalName = getDbInternalName(dbName);
-    DatabaseMapping mapping = databaseMappingService.databaseMapping(internalName);
-    return mapping.getClient().get_functions(mapping.transformInboundDatabaseName(dbName), pattern);
+    try {
+      assertDbNotNull(internalName);
+      DatabaseMapping mapping = databaseMappingService.databaseMapping(internalName);
+      return mapping.getClient().get_functions(mapping.transformInboundDatabaseName(dbName), pattern);
+    }catch (NoSuchObjectException e) {
+      return new ArrayList<>();
+    }
   }
 
   @Override
   @Loggable(value = Loggable.DEBUG, skipResult = true, name = INVOCATION_LOG_NAME)
   public Function get_function(String dbName, String funcName) throws MetaException, NoSuchObjectException, TException {
+    assertDbNotNull(dbName);
     String internalName = getDbInternalName(dbName);
+    assertDbNotNull(internalName);
     DatabaseMapping mapping = databaseMappingService.databaseMapping(internalName);
     return mapping
         .transformOutboundFunction(
@@ -1619,8 +1663,12 @@ public abstract class FederatedHMSHandler extends FacebookBase implements Closea
       String dest_db,
       String dest_table_name)
       throws MetaException, NoSuchObjectException, InvalidObjectException, InvalidInputException, TException {
+    assertDbNotNull(source_db);
     String sourceInternalName = getDbInternalName(source_db);
+    assertDbExistsMetaException(sourceInternalName);
+    assertDbNotNull(dest_db);
     String destInternalName = getDbInternalName(dest_db);
+    assertDbExistsMetaException(destInternalName);
     DatabaseMapping mapping = checkWritePermissionsAndCheckTableAllowed(sourceInternalName, source_table_name);
     checkWritePermissionsAndCheckTableAllowed(destInternalName, dest_table_name, mapping);
     List<Partition> result = mapping
