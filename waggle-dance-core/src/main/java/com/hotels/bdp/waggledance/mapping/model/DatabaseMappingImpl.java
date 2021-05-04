@@ -347,8 +347,10 @@ public class DatabaseMappingImpl implements DatabaseMapping {
 
   @Override
   public List<Partition> transformOutboundPartitions(List<Partition> partitions) {
-    for (Partition partition : partitions) {
-      transformOutboundPartition(partition);
+    if(partitions != null) {
+      for (Partition partition : partitions) {
+        transformOutboundPartition(partition);
+      }
     }
     return partitions;
   }
