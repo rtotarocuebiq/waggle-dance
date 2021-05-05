@@ -61,7 +61,6 @@ public class TestForeignKey extends MetaStoreClientTest
 
   public TestForeignKey(String name, AbstractMetaStoreService metaStore) throws Exception {
     this.metaStore = metaStore;
-    this.metaStore.start();
   }
 
   @Before

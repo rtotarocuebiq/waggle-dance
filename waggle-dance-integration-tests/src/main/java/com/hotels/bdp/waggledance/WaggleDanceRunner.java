@@ -203,6 +203,19 @@ public class WaggleDanceRunner implements WaggleDance.ContextListener {
       return this;
     }
 
+    public Builder primary(
+            String name,
+            String catalog,
+            String remoteMetaStoreUris,
+            AccessControlType accessControlType,
+            String... writableDatabaseWhiteList) {
+      checkArgument(Strings.isNotEmpty(name));
+      checkArgument(Strings.isNotEmpty(remoteMetaStoreUris));
+      primaryMetaStore = new PrimaryMetaStore(name, catalog, remoteMetaStoreUris, accessControlType, Arrays.asList(writableDatabaseWhiteList));
+      primaryMetaStore.setLatency(8000L);
+      return this;
+    }
+
     public Builder withPrimaryPrefix(String prefix) {
       primaryMetaStore.setDatabasePrefix(prefix);
       return this;

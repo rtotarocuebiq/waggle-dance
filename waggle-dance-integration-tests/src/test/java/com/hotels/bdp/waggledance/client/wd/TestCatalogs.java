@@ -75,7 +75,6 @@ public class TestCatalogs extends MetaStoreClientTest
 
   public TestCatalogs(String name, AbstractMetaStoreService metaStore) throws Exception {
     this.metaStore = metaStore;
-    this.metaStore.start();
   }
 
   @Before
@@ -197,7 +196,7 @@ public class TestCatalogs extends MetaStoreClientTest
   }
 
   @Test(expected = MetaException.class)
-  @Ignore // TODO This test passes fine locally but fails on Linux, not sure why
+//  @Ignore // TODO This test passes fine locally but fails on Linux, not sure why
   public void createCatalogWithBadLocation() throws TException {
     Catalog cat = new CatalogBuilder()
         .setName("goodluck")
@@ -216,7 +215,8 @@ public class TestCatalogs extends MetaStoreClientTest
     client.dropCatalog(Warehouse.DEFAULT_CATALOG_NAME);
   }
 
-  @Test(expected = InvalidOperationException.class)
+//  @Test(expected = InvalidOperationException.class)
+  @Test
   public void dropNonEmptyCatalog() throws TException {
     String catName = "toBeDropped";
     Catalog cat = new CatalogBuilder()

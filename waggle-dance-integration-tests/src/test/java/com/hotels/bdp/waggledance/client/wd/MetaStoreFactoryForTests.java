@@ -71,9 +71,9 @@ public final class MetaStoreFactoryForTests {
 
 
     // Create Remote MetaStore
-    conf.set("javax.jdo.option.ConnectionURL",
-            "jdbc:derby:memory:${test.tmp.dir}/junit_metastore_db4;create=true");
-    AbstractMetaStoreService wd_prefix = new PrimaryWaggleDanceServiceWithPrefix(conf,"test_");
+//    conf.set("javax.jdo.option.ConnectionURL",
+//            "jdbc:derby:memory:${test.tmp.dir}/junit_metastore_db4;create=true");
+//    AbstractMetaStoreService wd_prefix = new PrimaryWaggleDanceServiceWithPrefix(conf,"test_");
 //    metaStores.add(new Object[] {"WaggleDancePrimaryWithPrefix", wd_prefix});
 
 

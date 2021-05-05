@@ -39,7 +39,7 @@
     <hadoop.version>3.1.0</hadoop.version>
     <hamcrest.version>2.2</hamcrest.version>
     <hive.version>3.1.2</hive.version>
-    <junit.version>4.13.1</junit.version>
+    <junit.version>4.13.2</junit.version>
     <mockito.version>3.5.15</mockito.version>
     <dropwizard.metrics.version>3.1.5</dropwizard.metrics.version>
     <aspectj-maven-plugin.version>1.9</aspectj-maven-plugin.version>

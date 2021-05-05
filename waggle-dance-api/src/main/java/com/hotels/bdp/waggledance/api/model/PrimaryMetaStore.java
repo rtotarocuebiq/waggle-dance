@@ -31,7 +31,7 @@ public class PrimaryMetaStore extends AbstractMetaStore {
       String remoteMetaStoreUris,
       AccessControlType accessControlType,
       String... writableDatabaseWhitelist) {
-    this(name, remoteMetaStoreUris, accessControlType, Arrays.asList(writableDatabaseWhitelist));
+      this(name, remoteMetaStoreUris, accessControlType, Arrays.asList(writableDatabaseWhitelist));
   }
 
   public PrimaryMetaStore(
@@ -40,6 +40,15 @@ public class PrimaryMetaStore extends AbstractMetaStore {
       AccessControlType accessControlType,
       List<String> writableDatabaseWhitelist) {
     super(name, remoteMetaStoreUris, accessControlType, writableDatabaseWhitelist);
+  }
+
+  public PrimaryMetaStore(
+          String name,
+          String catalog,
+          String remoteMetaStoreUris,
+          AccessControlType accessControlType,
+          List<String> writableDatabaseWhitelist) {
+    super(name, catalog, remoteMetaStoreUris, accessControlType, writableDatabaseWhitelist);
   }
 
   @Override

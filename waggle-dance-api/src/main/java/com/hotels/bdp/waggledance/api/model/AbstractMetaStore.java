@@ -68,6 +68,19 @@ public abstract class AbstractMetaStore {
   }
 
   public AbstractMetaStore(
+          String name,
+          String catalog,
+          String remoteMetaStoreUris,
+          AccessControlType accessControlType,
+          List<String> writableDatabaseWhitelist) {
+    this.name = name;
+    this.remoteMetaStoreUris = remoteMetaStoreUris;
+    this.accessControlType = accessControlType;
+    this.writableDatabaseWhitelist = writableDatabaseWhitelist;
+    this.catalog = catalog;
+  }
+
+  public AbstractMetaStore(
       String name,
       String remoteMetaStoreUris,
       AccessControlType accessControlType,

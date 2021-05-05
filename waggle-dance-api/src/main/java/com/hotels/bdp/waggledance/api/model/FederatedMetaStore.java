@@ -44,6 +44,15 @@ public class FederatedMetaStore extends AbstractMetaStore {
     super(name, remoteMetaStoreUris, accessControlType, writableDatabaseWhiteList);
   }
 
+  public FederatedMetaStore(
+          String name,
+          String catalog,
+          String remoteMetaStoreUris,
+          AccessControlType accessControlType,
+          List<String> writableDatabaseWhiteList) {
+    super(name, catalog, remoteMetaStoreUris, accessControlType, writableDatabaseWhiteList);
+  }
+
   @Override
   public FederationType getFederationType() {
     return FederationType.FEDERATED;

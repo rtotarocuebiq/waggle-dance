@@ -43,22 +43,20 @@ public abstract class MetaStoreClientTest {
   // Needed until there is no junit release with @BeforeParam, @AfterParam (junit 4.13)
   // https://github.com/junit-team/junit4/commit/1bf8438b65858565dbb64736bfe13aae9cfc1b5a
   // Then we should remove our own copy
-  private static Set<AbstractMetaStoreService> metaStoreServices = null;
+  private static AbstractMetaStoreService metaStoreService;
 
   @Parameterized.Parameters(name = "{0}")
   public static List<Object[]> getMetaStoreToTest() throws Exception {
     List<Object[]> result = MetaStoreFactoryForTests.getMetaStores();
-    metaStoreServices = result.stream()
-                            .map(test -> (AbstractMetaStoreService)test[1])
-                            .collect(Collectors.toSet());
     return result;
   }
 
-  @BeforeClass
-  public static void startMetaStores() {
+  @Parameterized.BeforeParam
+  public static void setMetastore(String name, AbstractMetaStoreService metastore)
+  {
+    metaStoreService = metastore;
     startMetaStores(new HashMap<MetastoreConf.ConfVars, String>(), new HashMap<String, String>());
   }
-
   /**
    * Utility method, which can be used to start MetaStore instances with specific configurations
    * different from the default.
@@ -67,7 +65,6 @@ public abstract class MetaStoreClientTest {
    */
   public static void startMetaStores(Map<MetastoreConf.ConfVars, String> msConf,
                               Map<String, String> extraConf) {
-    for(AbstractMetaStoreService metaStoreService : metaStoreServices) {
       try {
         metaStoreService.start(msConf, extraConf);
       } catch(Exception e) {
@@ -75,12 +72,10 @@ public abstract class MetaStoreClientTest {
         // Log it, so at least there is a slight possibility we find out about this :)
         LOG.error("Error starting MetaStoreService", e);
       }
-    }
   }
 
   @AfterClass
   public static void stopMetaStores() {
-    for(AbstractMetaStoreService metaStoreService : metaStoreServices) {
       try {
         metaStoreService.stop();
       } catch(Exception e) {
@@ -88,6 +83,5 @@ public abstract class MetaStoreClientTest {
         // Log it, so at least there is a slight possibility we find out about this :)
         LOG.error("Error stopping MetaStoreService", e);
       }
-    }
   }
 }

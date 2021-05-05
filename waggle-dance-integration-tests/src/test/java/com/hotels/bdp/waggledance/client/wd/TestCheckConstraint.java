@@ -59,7 +59,6 @@ public class TestCheckConstraint extends MetaStoreClientTest
 
   public TestCheckConstraint(String name, AbstractMetaStoreService metaStore) throws Exception {
     this.metaStore = metaStore;
-    this.metaStore.start();
   }
 
   @Before

@@ -45,7 +45,6 @@ public class TestRuntimeStats extends MetaStoreClientTest
   public TestRuntimeStats(String name, AbstractMetaStoreService metaStore) throws Exception {
     this.metastoreName = name;
     this.metaStore = metaStore;
-    this.metaStore.start();
   }
 
   @Before

@@ -59,7 +59,6 @@ public class TestPrimaryKey extends MetaStoreClientTest
 
   public TestPrimaryKey(String name, AbstractMetaStoreService metaStore) throws Exception {
     this.metaStore = metaStore;
-    this.metaStore.start();
   }
 
   @Before
