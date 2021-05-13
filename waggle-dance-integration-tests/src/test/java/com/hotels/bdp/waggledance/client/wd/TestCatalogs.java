@@ -67,6 +67,7 @@ import org.slf4j.LoggerFactory;
  */
 @RunWith(Parameterized.class)
 @Category(MetastoreCheckinTest.class)
+@Ignore("Not Supported")//TODO
 public class TestCatalogs extends MetaStoreClientTest
 {
   private static final Logger LOG = LoggerFactory.getLogger(TestCatalogs.class);

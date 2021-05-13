@@ -46,6 +46,7 @@ import org.apache.thrift.transport.TTransportException;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -518,6 +519,7 @@ public class TestGetPartitions extends MetaStoreClientTest
   }
 
   @Test
+  @Ignore("Not Supported")//TODO
   public void otherCatalog() throws TException {
     String catName = "get_partition_catalog";
     Catalog cat = new CatalogBuilder()
@@ -590,6 +592,7 @@ public class TestGetPartitions extends MetaStoreClientTest
   }
 
   @Test(expected = NoSuchObjectException.class)
+  @Ignore("Not Supported")//TODO
   public void getPartitionsByNamesBogusCatalog() throws TException {
     createTable3PartCols1Part(client);
     client.getPartitionsByNames("bogus", DB_NAME, TABLE_NAME,

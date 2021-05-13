@@ -45,6 +45,7 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -494,6 +495,7 @@ public class TestDropPartitions extends MetaStoreClientTest
   }
 
   @Test
+  @Ignore("Not Supported")//TODO
   public void otherCatalog() throws TException {
     String catName = "drop_partition_catalog";
     Catalog cat = new CatalogBuilder()

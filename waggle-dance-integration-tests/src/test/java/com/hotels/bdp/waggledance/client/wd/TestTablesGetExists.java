@@ -43,6 +43,7 @@ import org.apache.thrift.transport.TTransportException;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -457,6 +458,7 @@ public class TestTablesGetExists extends MetaStoreClientTest
 
   // Tests for getTable in other catalogs are covered in TestTablesCreateDropAlterTruncate.
   @Test
+  @Ignore("Not supported") //TODO
   public void otherCatalog() throws TException {
     String catName = "get_exists_tables_in_other_catalogs";
     Catalog cat = new CatalogBuilder()

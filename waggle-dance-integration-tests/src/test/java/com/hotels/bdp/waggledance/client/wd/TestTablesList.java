@@ -38,6 +38,7 @@ import org.apache.thrift.TException;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -272,6 +273,7 @@ public class TestTablesList extends MetaStoreClientTest
   }
 
   @Test
+  @Ignore("Not Supported")//TODO
   public void otherCatalogs() throws TException {
     String catName = "list_tables_in_other_catalogs";
     Catalog cat = new CatalogBuilder()

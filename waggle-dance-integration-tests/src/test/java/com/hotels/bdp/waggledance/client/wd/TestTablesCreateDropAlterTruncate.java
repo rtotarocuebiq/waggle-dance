@@ -67,6 +67,7 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -1074,6 +1075,7 @@ public class TestTablesCreateDropAlterTruncate extends MetaStoreClientTest
   }
 
   @Test
+  @Ignore("Not Supported")//TODO
   public void tablesInOtherCatalogs() throws TException, URISyntaxException {
     String catName = "create_etc_tables_in_other_catalogs";
     Catalog cat = new CatalogBuilder()
@@ -1276,6 +1278,7 @@ public class TestTablesCreateDropAlterTruncate extends MetaStoreClientTest
   }
 
   @Test(expected = InvalidOperationException.class)
+  @Ignore("Not Supported")//TODO
   public void moveTablesBetweenCatalogsOnAlter() throws TException {
     String catName = "move_table_between_catalogs_on_alter";
     Catalog cat = new CatalogBuilder()

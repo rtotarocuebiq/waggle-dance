@@ -47,6 +47,7 @@ import org.apache.thrift.TException;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -440,6 +441,8 @@ public class TestAppendPartitions extends MetaStoreClientTest
   }
 
   @Test
+  @Ignore("Not supported")
+  //TODO:
   public void otherCatalog() throws TException {
     String catName = "append_partition_catalog";
     Catalog cat = new CatalogBuilder()

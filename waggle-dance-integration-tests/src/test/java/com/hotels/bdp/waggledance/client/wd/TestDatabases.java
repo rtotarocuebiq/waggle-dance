@@ -50,6 +50,7 @@ import org.apache.thrift.TException;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -490,6 +491,7 @@ public class TestDatabases extends MetaStoreClientTest
   }
 
   @Test
+  @Ignore("Not Supported")//TODO
   public void databasesInCatalogs() throws TException, URISyntaxException {
     String catName = "mycatalog";
     Catalog cat = new CatalogBuilder()

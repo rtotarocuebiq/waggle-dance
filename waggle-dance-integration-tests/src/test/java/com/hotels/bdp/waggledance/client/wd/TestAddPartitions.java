@@ -45,6 +45,7 @@ import org.apache.thrift.transport.TTransportException;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -124,6 +125,8 @@ public class TestAddPartitions extends MetaStoreClientTest
   }
 
   @Test
+  @Ignore("Not Supported")
+  //TODO:
   public void addPartitionOtherCatalog() throws TException {
     String catName = "add_partition_catalog";
     Catalog cat = new CatalogBuilder()

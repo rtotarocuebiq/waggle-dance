@@ -29,13 +29,14 @@ import org.apache.hadoop.hive.metastore.api.RuntimeStat;
 import org.apache.hadoop.hive.metastore.minihms.AbstractMetaStoreService;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-//FIXME
 @RunWith(Parameterized.class)
 @Category(MetastoreUnitTest.class)
+@Ignore("Not Supported")//TODO
 public class TestRuntimeStats extends MetaStoreClientTest
 {
   private final AbstractMetaStoreService metaStore;
